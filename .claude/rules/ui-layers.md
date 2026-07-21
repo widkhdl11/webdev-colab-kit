@@ -1,0 +1,12 @@
+---
+paths:
+  - "src/app/**"
+  - "src/pages/**"
+  - "src/widgets/**"
+---
+# UI 레이어 규칙
+- 비즈니스 규칙 금지 — 판단은 features/entities에서 가져오고 여기선 조합·표시만
+- 작업 전 docs/design-rules.md를 읽는다. checkpoint로 승인된 기준이 취향보다 우선
+- 접근성 기본: 본문 대비 4.5:1 이상, 본문 16px 이상, 이미지 alt, 폼 label 연결
+- 외부 링크 target=_blank에는 rel="noopener noreferrer"
+- 하드코딩 색/간격 금지 — 디자인 토큰(CSS 변수)으로

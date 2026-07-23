@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/**"
+  - "projects/*/src/**"
 ---
 # TDD 규칙 (스펙이 있는 기능)
 - docs/specs/에 해당 기능의 approved 스펙이 있으면: 구현 전에 시나리오를 테스트로 먼저 작성한다

@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>wama · 학원생 목록</title>
+
+<!--
+  화면: 학원생 목록 (로그인 후 첫 화면, 데스크톱 우선)
+  근거: projects/wama/design/INTERVIEW.md "확정 방향(회차 2)"
+    - 무드: 신뢰 기반 + 약간 친근
+    - 밀도: 정보 빽빽(표 중심) / 톤: 라이트 / 모서리: 살짝 라운드(~8px) / 그림자: 얇게
+    - 폰트: Pretendard(CDN) 우선, system-ui fallback
+    - 색: 틸/그린 #0D9488 단일 강조. 배경 흰/연회색, 텍스트 슬레이트, 보더 연회색. 색 절제.
+    - 반응형: 데스크톱 우선(중앙 정렬 max-width ~1120px)
+  주: 정적 목업. 로직/API 없음. 데이터는 한글 더미 하드코딩.
+  아직 design-rules.md 없음 — 이 시안이 checkpoint 승인되면 기준이 됨.
+-->
+
+<!-- Pretendard (한글 가독성 우선) -->
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+<!-- Tailwind CDN (외부 빌드 금지 → CDN 허용) -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            DEFAULT: '#0D9488',   // 강조: CTA·활성·링크에만
+            hover:   '#0B8177',
+            soft:    '#f0fdfa',   // 강조 배경(연한 틸)
+            border:  '#99f6e4',
+          },
+          slate: {
+            ink:    '#1e293b',    // 본문 텍스트
+            muted:  '#64748b',    // 보조 텍스트
+            line:   '#e2e8f0',    // 보더
+          },
+        },
+        borderRadius: { card: '8px' },
+        maxWidth: { app: '1120px' },
+      },
+    },
+  };
+</script>
+
+<style>
+  :root { font-family: 'Pretendard Variable', Pretendard, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+  body { font-family: inherit; }
+  /* 표 숫자 정렬 가독성 */
+  .tnum { font-variant-numeric: tabular-nums; }
+  /* 얇은 그림자 토큰 */
+  .shadow-thin { box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06); }
+  /* 포커스 링 (강조색) — 접근성: 절대 제거 금지 */
+  :where(a, button, input, select):focus-visible {
+    outline: 2px solid #0D9488;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+</style>
+</head>
+
+<body class="min-h-screen bg-[#f8fafc] text-slate-ink antialiased">
+
+  <!-- ===== 상단 헤더 ===== -->
+  <header class="sticky top-0 z-20 border-b border-slate-line bg-white/95 backdrop-blur">
+    <div class="mx-auto flex h-16 max-w-app items-center justify-between px-6">
+
+      <!-- 좌: 로고 + 학원명 -->
+      <a href="#" class="flex items-center gap-2.5" aria-label="온마음수학학원 홈">
+        <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-brand text-white font-bold">온</span>
+        <span class="text-[17px] font-semibold tracking-tight">온마음수학학원</span>
+      </a>
+
+      <!-- 우: 내 계정 (드롭다운 표시) -->
+      <button class="flex items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-slate-50" aria-haspopup="menu">
+        <span class="hidden text-right sm:block">
+          <span class="block text-sm font-medium leading-tight">김지현 선생님</span>
+          <span class="block text-xs text-slate-muted leading-tight">담임 · 중등부</span>
+        </span>
+        <span class="flex h-9 w-9 items-center justify-center rounded-full bg-brand-soft text-brand font-semibold ring-1 ring-brand-border">김</span>
+        <svg class="h-4 w-4 text-slate-muted" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===== 본문 ===== -->
+  <main class="mx-auto max-w-app px-6 py-8">
+
+    <!-- 페이지 타이틀 -->
+    <div class="mb-6">
+      <h1 class="text-[22px] font-bold tracking-tight">학원생 목록</h1>
+      <p class="mt-1 text-sm text-slate-muted">담당 학생을 훑어보고, 이름을 눌러 상세로 이동하세요.</p>
+    </div>
+
+    <!-- ===== 요약 지표 스트립 ===== -->
+    <section aria-label="요약 지표" class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+
+      <!-- 총 학생 수 -->
+      <div class="rounded-card border border-slate-line bg-white p-4 shadow-thin">
+        <div class="flex items-center gap-2 text-slate-muted">
+          <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zM3 18a7 7 0 0114 0H3z"/></svg>
+          <span class="text-sm">총 담당 학생</span>
+        </div>
+        <div class="mt-2 flex items-end gap-1.5">
+          <span class="tnum text-3xl font-bold leading-none">48</span>
+          <span class="mb-0.5 text-sm text-slate-muted">명</span>
+        </div>
+      </div>
+
+      <!-- 이번 달 평가 완료 -->
+      <div class="rounded-card border border-slate-line bg-white p-4 shadow-thin">
+        <div class="flex items-center gap-2 text-slate-muted">
+          <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M16.7 5.3a1 1 0 010 1.4l-7.5 7.5a1 1 0 01-1.4 0L3.3 9.7a1 1 0 011.4-1.4l3.3 3.29 6.8-6.79a1 1 0 011.4 0z" clip-rule="evenodd"/></svg>
+          <span class="text-sm">이번 달 평가 완료</span>
+        </div>
+        <div class="mt-2 flex items-end gap-1.5">
+          <span class="tnum text-3xl font-bold leading-none">31</span>
+          <span class="mb-0.5 text-sm text-slate-muted">/ 48명</span>
+        </div>
+        <!-- 진행률 (접근성: role=progressbar) -->
+        <div class="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-100"
+             role="progressbar" aria-valuenow="65" aria-valuemin="0" aria-valuemax="100" aria-label="이번 달 평가 완료율 65%">
+          <div class="h-full rounded-full bg-brand" style="width:65%"></div>
+        </div>
+      </div>
+
+      <!-- 다가오는 시험 -->
+      <div class="rounded-card border border-slate-line bg-white p-4 shadow-thin">
+        <div class="flex items-center gap-2 text-slate-muted">
+          <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M6 2a1 1 0 011 1v1h6V3a1 1 0 112 0v1h1a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V6a2 2 0 012-2h1V3a1 1 0 011-1zM4 8v7h12V8H4z" clip-rule="evenodd"/></svg>
+          <span class="text-sm">다가오는 시험</span>
+        </div>
+        <div class="mt-2">
+          <span class="text-[15px] font-semibold">7월 모의고사</span>
+          <span class="tnum ml-1 text-sm text-slate-muted">· D-5 (7/26 토)</span>
+        </div>
+        <div class="mt-1 text-xs text-slate-muted">대상 중3 · 대비반 24명</div>
+      </div>
+    </section>
+
+    <!-- ===== 툴바 ===== -->
+    <section class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex flex-1 flex-wrap items-center gap-2.5">
+
+        <!-- 검색 -->
+        <label class="relative block w-full sm:w-72">
+          <span class="sr-only">학생 이름 검색</span>
+          <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-muted" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 103.39 9.85l3.13 3.13a.75.75 0 101.06-1.06l-3.13-3.13A5.5 5.5 0 009 3.5zM5 9a4 4 0 118 0 4 4 0 01-8 0z" clip-rule="evenodd"/></svg>
+          <input type="search" placeholder="이름으로 검색"
+            class="w-full rounded-lg border border-slate-line bg-white py-2 pl-9 pr-3 text-[15px] placeholder:text-slate-400 focus:border-brand" />
+        </label>
+
+        <!-- 필터: 학년 -->
+        <label class="block">
+          <span class="sr-only">학년 필터</span>
+          <select class="rounded-lg border border-slate-line bg-white py-2 pl-3 pr-8 text-[15px] focus:border-brand">
+            <option>전체 학년</option>
+            <option>중1</option><option>중2</option><option>중3</option>
+            <option>고1</option><option>고2</option><option>고3</option>
+          </select>
+        </label>
+
+        <!-- 필터: 과목 -->
+        <label class="block">
+          <span class="sr-only">과목 필터</span>
+          <select class="rounded-lg border border-slate-line bg-white py-2 pl-3 pr-8 text-[15px] focus:border-brand">
+            <option>전체 과목</option>
+            <option>수학(공통)</option><option>미적분</option><option>확률과 통계</option><option>기하</option>
+          </select>
+        </label>
+      </div>
+
+      <!-- 우: 학생 등록 (강조 CTA) -->
+      <button class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-[15px] font-semibold text-white shadow-thin hover:bg-brand-hover">
+        <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 4a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 0110 4z"/></svg>
+        학생 등록
+      </button>
+    </section>
+
+    <!-- ===== 학생 목록 표 ===== -->
+    <div class="overflow-hidden rounded-card border border-slate-line bg-white shadow-thin">
+      <table class="w-full border-collapse text-left">
+        <caption class="sr-only">담당 학생 목록. 이름, 학년, 학교, 담당 과목, 최근 평가월. 행을 누르면 상세로 이동합니다.</caption>
+        <thead>
+          <tr class="border-b border-slate-line bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-muted">
+            <th scope="col" class="px-5 py-3 font-semibold">이름</th>
+            <th scope="col" class="px-5 py-3 font-semibold">학년</th>
+            <th scope="col" class="px-5 py-3 font-semibold">학교</th>
+            <th scope="col" class="px-5 py-3 font-semibold">담당 과목</th>
+            <th scope="col" class="px-5 py-3 font-semibold">최근 평가월</th>
+            <th scope="col" class="px-5 py-3 text-right font-semibold">상태</th>
+          </tr>
+        </thead>
+        <tbody class="text-[15px]">
+          <!-- 각 행: hover 강조 + cursor-pointer 로 클릭(상세 진입) 암시. 이름은 링크로 강조색. -->
+
+          <!-- 1 -->
+          <tr class="group cursor-pointer border-b border-slate-line hover:bg-brand-soft/60">
+            <td class="px-5 py-3">
+              <a href="#" class="font-medium text-slate-ink group-hover:text-brand group-hover:underline">강서준</a>
+            </td>
+            <td class="tnum px-5 py-3 text-slate-muted">중3</td>
+            <td class="px-5 py-3 text-slate-muted">서일중학교</td>
+            <td class="px-5 py-3">수학(공통)</td>
+            <td class="tnum px-5 py-3 text-slate-muted">2026.07</td>
+            <td class="px-5 py-3 text-right"><span class="inline-flex items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand ring-1 ring-brand-border">평가완료</span></td>
+          </tr>
+
+          <!-- 2 -->
+          <tr class="group cursor-pointer border-b border-slate-line hover:bg-brand-soft/60">
+            <td class="px-5 py-3"><a href="#" class="font-medium text-slate-ink group-hover:text-brand group-hover:underline">김하윤</a></td>
+            <td class="tnum px-5 py-3 text-slate-muted">중2</td>
+            <td class="px-5 py-3 text-slate-muted">면목중학교</td>
+            <td class="px-5 py-3">수학(공통)</td>
+            <td class="tnum px-5 py-3 text-slate-muted">2026.07</td>
+            <td class="px-5 py-3 text-right"><span class="inline-flex items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand ring-1 ring-brand-border">평가완료</span></td>
+          </tr>
+
+          <!-- 3 -->
+          <tr class="group cursor-pointer border-b border-slate-line hover:bg-brand-soft/60">
+            <td class="px-5 py-3"><a href="#" class="font-medium text-slate-ink group-hover:text-brand group-hover:underline">박도윤</a></td>
+            <td class="tnum px-5 py-3 text-slate-muted">고1</td>
+            <td class="px-5 py-3 text-slate-muted">중랑고등학교</td>
+            <td class="px-5 py-3">미적분</td>
+            <td class="tnum px-5 py-3 text-slate-muted">2026.06</td>
+            <td class="px-5 py-3 text-right"><span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200">평가대기</span></td>
+          </tr>
+
+          <!-- 4 -->
+          <tr class="group cursor-pointer border-b border-slate-line hover:bg-brand-soft/60">
+            <td class="px-5 py-3"><a href="#" class="font-medium text-slate-ink group-hover:text-brand group-hover:underline">이서연</a></td>
+            <td class="tnum px-5 py-3 text-slate-muted">고2</td>
+            <td class="px-5 py-3 text-slate-muted">태릉고등학교</td>
+            <td class="px-5 py-3">확률과 통계</td>
+            <td class="tnum px-5 py-3 text-slate-muted">2026.07</td>
+            <td class="px-5 py-3 text-right"><span class="inline-flex items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand ring-1 ring-brand-border">평가완료</span></td>
+          </tr>
+
+          <!-- 5 -->
+          <tr class="group cursor-pointer border-b border-slate-line hover:bg-brand-soft/60">
+            <td class="px-5 py-3"><a href="#" class="font-medium text-slate-ink group-hover:text-brand group-hover:underline">정우진</a></td>
+            <td class="tnum px-5 py-3 text-slate-muted">중3</td>
+            <td class="px-5 py-3 text-slate-muted">서일중학교</td>
+            <td class="px-5 py-3">수학(공통)</td>
+            <td class="tnum px-5 py-3 text-slate-muted">2026.07</td>
+            <td class="px-5 py-3 text-right"><span class="inline-flex items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand ring-1 ring-brand-border">평가완료</span></td>
+          </tr>
+
+          <!-- 6 -->
+          <tr class="group cursor-pointer border-b border-slate-line hover:bg-brand-soft/60">
+            <td class="px-5 py-3"><a href="#" class="font-medium text-slate-ink group-hover:text-brand group-hover:underline">최유나</a></td>
+            <td class="tnum px-5 py-3 text-slate-muted">고3</td>
+            <td class="px-5 py-3 text-slate-muted">태릉고등학교</td>
+            <td class="px-5 py-3">기하</td>
+            <td class="tnum px-5 py-3 text-slate-muted">2026.06</td>
+            <td class="px-5 py-3 text-right"><span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200">평가대기</span></td>
+          </tr>
+
+          <!-- 7 -->
+          <tr class="group cursor-pointer border-b border-slate-line hover:bg-brand-soft/60">
+            <td class="px-5 py-3"><a href="#" class="font-medium text-slate-ink group-hover:text-brand group-hover:underline">한지호</a></td>
+            <td class="tnum px-5 py-3 text-slate-muted">중1</td>
+            <td class="px-5 py-3 text-slate-muted">묵동중학교</td>
+            <td class="px-5 py-3">수학(공통)</td>
+            <td class="tnum px-5 py-3 text-slate-muted">2026.07</td>
+            <td class="px-5 py-3 text-right"><span class="inline-flex items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand ring-1 ring-brand-border">평가완료</span></td>
+          </tr>
+
+          <!-- 8 -->
+          <tr class="group cursor-pointer border-b border-slate-line hover:bg-brand-soft/60">
+            <td class="px-5 py-3"><a href="#" class="font-medium text-slate-ink group-hover:text-brand group-hover:underline">윤채원</a></td>
+            <td class="tnum px-5 py-3 text-slate-muted">고1</td>
+            <td class="px-5 py-3 text-slate-muted">중랑고등학교</td>
+            <td class="px-5 py-3">미적분</td>
+            <td class="tnum px-5 py-3 text-slate-muted">2026.07</td>
+            <td class="px-5 py-3 text-right"><span class="inline-flex items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand ring-1 ring-brand-border">평가완료</span></td>
+          </tr>
+
+          <!-- 9 -->
+          <tr class="group cursor-pointer border-b border-slate-line hover:bg-brand-soft/60">
+            <td class="px-5 py-3"><a href="#" class="font-medium text-slate-ink group-hover:text-brand group-hover:underline">임건우</a></td>
+            <td class="tnum px-5 py-3 text-slate-muted">중2</td>
+            <td class="px-5 py-3 text-slate-muted">면목중학교</td>
+            <td class="px-5 py-3">수학(공통)</td>
+            <td class="tnum px-5 py-3 text-slate-muted">2026.05</td>
+            <td class="px-5 py-3 text-right"><span class="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600 ring-1 ring-slate-200">평가대기</span></td>
+          </tr>
+
+          <!-- 10 -->
+          <tr class="group cursor-pointer hover:bg-brand-soft/60">
+            <td class="px-5 py-3"><a href="#" class="font-medium text-slate-ink group-hover:text-brand group-hover:underline">오지안</a></td>
+            <td class="tnum px-5 py-3 text-slate-muted">고2</td>
+            <td class="px-5 py-3 text-slate-muted">태릉고등학교</td>
+            <td class="px-5 py-3">확률과 통계</td>
+            <td class="tnum px-5 py-3 text-slate-muted">2026.07</td>
+            <td class="px-5 py-3 text-right"><span class="inline-flex items-center rounded-full bg-brand-soft px-2.5 py-0.5 text-xs font-medium text-brand ring-1 ring-brand-border">평가완료</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- 페이지네이션 (간단히 암시) -->
+      <div class="flex items-center justify-between border-t border-slate-line px-5 py-3 text-sm text-slate-muted">
+        <span class="tnum">전체 48명 중 1–10</span>
+        <nav class="flex items-center gap-1" aria-label="페이지 이동">
+          <button class="rounded-md px-2.5 py-1.5 hover:bg-slate-100" aria-label="이전 페이지">이전</button>
+          <button class="tnum rounded-md bg-brand px-3 py-1.5 font-medium text-white" aria-current="page">1</button>
+          <button class="tnum rounded-md px-3 py-1.5 hover:bg-slate-100">2</button>
+          <button class="tnum rounded-md px-3 py-1.5 hover:bg-slate-100">3</button>
+          <button class="tnum rounded-md px-3 py-1.5 hover:bg-slate-100">4</button>
+          <button class="tnum rounded-md px-3 py-1.5 hover:bg-slate-100">5</button>
+          <button class="rounded-md px-2.5 py-1.5 hover:bg-slate-100" aria-label="다음 페이지">다음</button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- ===== 빈 상태 (암시용, 기본 숨김) ===== -->
+    <div class="mt-4 hidden rounded-card border border-dashed border-slate-line bg-white p-10 text-center" data-empty-state>
+      <p class="text-[15px] font-medium">검색 결과가 없습니다.</p>
+      <p class="mt-1 text-sm text-slate-muted">다른 이름이나 필터로 다시 시도해 보세요.</p>
+    </div>
+
+  </main>
+</body>
+</html>

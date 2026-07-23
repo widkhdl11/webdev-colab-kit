@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // 추적성 게이트: approved 스펙의 모든 불변식(INV-*)은 최소 1개 테스트가 참조해야 한다
+// 스펙은 루트 docs/specs/ 에서 읽고, 테스트는 projects/*/src 와 projects/*/tests 에서 찾는다.
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, relative } from "node:path";
 
@@ -27,7 +28,19 @@ for (const f of walk(SPECS).filter((f) => f.endsWith(".md"))) {
 }
 if (invToSpec.size === 0) process.exit(0);
 
-const testFiles = walk(join(ROOT, "src")).concat(walk(join(ROOT, "tests")))
+// 테스트 탐색 루트: projects/<이름>/src 와 projects/<이름>/tests
+const testRoots = [];
+const projectsDir = join(ROOT, "projects");
+if (existsSync(projectsDir)) {
+  for (const n of readdirSync(projectsDir)) {
+    const p = join(projectsDir, n);
+    try {
+      if (statSync(p).isDirectory()) testRoots.push(join(p, "src"), join(p, "tests"));
+    } catch { /* skip */ }
+  }
+}
+const testFiles = testRoots
+  .flatMap((d) => walk(d))
   .filter((f) => /\.(test|spec)\.(ts|tsx|js)$/.test(f));
 const testText = testFiles.map((f) => readFileSync(f, "utf-8")).join("\n");
 

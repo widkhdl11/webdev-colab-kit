@@ -1,7 +1,7 @@
 ---
 paths:
-  - "src/entities/**"
-  - "src/features/**"
+  - "projects/*/src/entities/**"
+  - "projects/*/src/features/**"
 ---
 # 도메인 레이어 규칙
 - 도메인 규칙(불변식, 상태 전이)은 entities에, 유스케이스 조합은 features에

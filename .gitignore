@@ -1,5 +1,6 @@
 node_modules/
 dist/
+devserver.log
 .env
 .env.*
 !.env.example

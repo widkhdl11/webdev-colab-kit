@@ -27,6 +27,18 @@ const gateLight = g.status === 0 ? "통과" : "실패 — 새 작업 전에 복�
 const stopped = progress.match(/멈춘 지점:\s*(.+)/)?.[1]?.trim() ?? "(기록 없음 — 첫 세션이거나 wrap-up 누락)";
 const next = progress.match(/다음 할 일:\s*(.+)/)?.[1]?.trim() ?? "(기록 없음)";
 
+// 4.5. 원칙 가드 — "화면(디자인) 먼저, 그다음 DB/구현" (CLAUDE.md·design-drafting.md).
+// "다음 할 일"의 첫 옵션이 데이터 계층인데 화면 대안이 함께 적혀 있으면(= 재량적 순서),
+// 순서가 원칙과 어긋날 수 있으니 경보한다. DB가 유일 단계면(화면 언급 없음) 발화하지 않는다.
+// 이 가드는 순서만 본다 — 화면 국면의 완료 여부까지 판정하지 않으니, 경보 시 사람이 확인한다.
+const firstOption = next.split(/또는|→|then/i)[0];
+const dataRe = /\b(DB|Supabase|RLS|migration|스키마|schema|마이그레이션|데이터 ?계층)\b/i;
+const uiRe = /(화면|페이지|page|UI|시안|디자인|mockup)/i;
+const principleWarn =
+  dataRe.test(firstOption) && uiRe.test(next)
+    ? "⚠ 순서 점검: '다음 할 일' 1순위가 데이터 계층인데 화면 대안이 함께 있음 — 원칙은 화면(디자인) 먼저. 화면 국면이 남았다면 순서를 뒤집을 것."
+    : "";
+
 // 5. 좌표
 const plan = read("PLAN.md");
 const done = (plan.match(/- \[x\]/g) ?? []).length;
@@ -37,4 +49,5 @@ console.log(`▣ 대기 중인 결정: ${pending.length > 0 ? pending.join(" / "
 console.log(`● 게이트: ${gateLight}`);
 console.log(`↩ 멈춘 지점: ${stopped}`);
 console.log(`→ 다음 할 일: ${next}`);
+if (principleWarn) console.log(principleWarn);
 if (total > 0) console.log(`▤ 필수 기능 진행: ${done}/${total}`);

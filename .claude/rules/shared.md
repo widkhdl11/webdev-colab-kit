@@ -1,6 +1,6 @@
 ---
 paths:
-  - "src/shared/**"
+  - "projects/*/src/shared/**"
 ---
 # shared 레이어 규칙
 - 도메인 지식 금지 — "주문", "결제" 같은 비즈니스 개념이 등장하면 잘못된 배치다

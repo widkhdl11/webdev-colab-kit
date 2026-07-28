@@ -2,7 +2,9 @@
 paths:
   - "projects/*/src/shared/api/**"
 ---
+
 # Supabase 연동 규칙 (데이터 계층)
+
 - **학원 격리는 클라이언트가 아니라 RLS로 강제한다.** 모든 테이블(teacher·student·schedule·
   evaluation)에 "요청자의 academy_id와 일치하는 행만" 정책을 건다. 클라이언트의
   `.eq('academy_id', ...)` 필터는 UX용일 뿐 인가가 아니다 — 필터를 빼도 타 학원 데이터가 새지 않아야 한다.

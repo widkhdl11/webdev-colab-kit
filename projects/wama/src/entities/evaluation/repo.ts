@@ -1,23 +1,102 @@
+import { supabase } from "@/shared/api/supabase";
+import { ok, err, type Result } from "@/shared/lib/result";
 import type { Evaluation } from "./model";
 
-// 임시 목업. 데이터 계층(Supabase) 연결 시 getEvaluations 구현만 교체한다.
-// 최신 월이 위로 오도록 정렬된 상태로 둔다 (표시 순서는 상위에서 다시 강제하지 않는다).
-const DEFAULT_EVALUATIONS: readonly Evaluation[] = [
-  {
-    id: "ev1", month: "2026.07", subject: "수학(공통)", teacher: "김지현",
-    body: "함수 단원 개념 이해도가 눈에 띄게 올라왔습니다. 응용 문제에서 조건 해석을 놓치는 경우가 줄었고, 오답 노트를 꾸준히 작성해 스스로 약점을 관리하고 있습니다. 다음 달은 서술형 풀이 과정의 논리 전개를 다듬는 데 집중하겠습니다.",
-  },
-  {
-    id: "ev2", month: "2026.06", subject: "수학(공통)", teacher: "김지현",
-    body: "수업 태도가 성실하고 질문의 질이 좋아졌습니다. 계산 실수를 줄이기 위한 검산 습관을 들이는 중이며, 기본기는 안정적입니다.",
-  },
-  {
-    id: "ev3", month: "2026.05", subject: "심화 문제풀이", teacher: "박선우",
-    body: "심화반 진입 초기라 낯선 유형에 시간이 걸리지만 포기하지 않고 끝까지 시도하는 점이 강점입니다. 풀이 시간을 관리하는 연습을 병행하겠습니다.",
-  },
-];
+// 평가 데이터 계층 (Supabase). 학원 격리·작성자(author)·academy_id 는 서버(RLS + evaluation_guard 트리거)가 강제.
+// DB period_month 는 "YYYY-MM"(regex 제약). 표시 모델 month 는 "YYYY.MM". content↔body.
+// 작성 선생님 이름은 author_teacher_id → teacher(name) 임베드로 가져온다.
 
-export function getEvaluations(studentId: string): Promise<Evaluation[]> {
-  void studentId;
-  return Promise.resolve([...DEFAULT_EVALUATIONS]);
+// 임베드는 버전에 따라 객체 또는 1요소 배열로 올 수 있어 양쪽을 흡수.
+function teacherName(raw: unknown): string {
+  const t = Array.isArray(raw) ? raw[0] : raw;
+  if (t && typeof t === "object" && typeof (t as { name?: unknown }).name === "string") {
+    return (t as { name: string }).name;
+  }
+  return "";
+}
+
+function asEvaluation(raw: unknown): Evaluation {
+  if (typeof raw !== "object" || raw === null) throw new Error("evaluation 응답이 객체가 아닙니다");
+  const r = raw as Record<string, unknown>;
+  if (typeof r.id !== "string" || typeof r.subject !== "string" || typeof r.period_month !== "string") {
+    throw new Error("evaluation 응답 형식이 잘못됐습니다");
+  }
+  return {
+    id: r.id,
+    month: r.period_month.replace("-", "."),
+    subject: r.subject,
+    teacher: teacherName(r.teacher),
+    body: typeof r.content === "string" ? r.content : "",
+  };
+}
+
+export async function getEvaluations(studentId: string): Promise<Evaluation[]> {
+  const { data, error } = await supabase.from("evaluation")
+    .select("id, subject, period_month, content, teacher:author_teacher_id(name)")
+    .eq("student_id", studentId).order("period_month", { ascending: false });
+  if (error) { console.error("[evaluation] getEvaluations:", error.message); return []; }
+  const out: Evaluation[] = [];
+  for (const raw of data ?? []) {
+    try { out.push(asEvaluation(raw)); } catch (e) { console.error("[evaluation] 행 파싱:", e instanceof Error ? e.message : e); }
+  }
+  return out;
+}
+
+// 수정 폼 프리필용 — month 는 <input type=month> 값 형식("YYYY-MM")으로 반환.
+export interface EvaluationEdit {
+  readonly id: string;
+  readonly subject: string;
+  readonly month: string; // "YYYY-MM"
+  readonly body: string;
+}
+
+export async function getEvaluationForEdit(id: string): Promise<EvaluationEdit | null> {
+  const { data, error } = await supabase.from("evaluation")
+    .select("id, subject, period_month, content").eq("id", id).maybeSingle();
+  if (error || data == null) {
+    if (error) console.error("[evaluation] getEvaluationForEdit:", error.message);
+    return null;
+  }
+  const r = data as Record<string, unknown>;
+  if (typeof r.id !== "string" || typeof r.subject !== "string" || typeof r.period_month !== "string") return null;
+  return { id: r.id, subject: r.subject, month: r.period_month, body: typeof r.content === "string" ? r.content : "" };
+}
+
+export interface EvaluationInput {
+  readonly subject: string;
+  readonly month: string; // "YYYY-MM"
+  readonly body: string;
+}
+
+function validate(input: EvaluationInput): string | null {
+  if (!input.subject.trim()) return "과목을 선택하세요.";
+  if (!/^\d{4}-\d{2}$/.test(input.month)) return "평가 월을 선택하세요.";
+  if (!input.body.trim()) return "평가 내용을 입력하세요.";
+  return null;
+}
+
+function mapError(message: string): string {
+  if (message.toLowerCase().includes("duplicate") || message.toLowerCase().includes("unique")) {
+    return "이 학생·과목·월의 평가가 이미 있습니다. 기존 평가를 수정하세요.";
+  }
+  return "평가를 저장할 수 없습니다. 잠시 후 다시 시도해 주세요.";
+}
+
+export async function createEvaluation(studentId: string, input: EvaluationInput): Promise<Result<void>> {
+  const invalid = validate(input);
+  if (invalid) return err(invalid);
+  const { error } = await supabase.from("evaluation").insert({
+    student_id: studentId, subject: input.subject, period_month: input.month, content: input.body.trim(),
+  });
+  if (error) { console.error("[evaluation] createEvaluation:", error.message); return err(mapError(error.message)); }
+  return ok(undefined);
+}
+
+export async function updateEvaluation(id: string, input: EvaluationInput): Promise<Result<void>> {
+  const invalid = validate(input);
+  if (invalid) return err(invalid);
+  const { error } = await supabase.from("evaluation")
+    .update({ subject: input.subject, period_month: input.month, content: input.body.trim() }).eq("id", id);
+  if (error) { console.error("[evaluation] updateEvaluation:", error.message); return err(mapError(error.message)); }
+  return ok(undefined);
 }

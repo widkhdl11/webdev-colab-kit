@@ -3,17 +3,18 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "bundler",
+    "skipLibCheck": true,
     "strict": true,
     "noEmit": false,
     "outDir": "dist",
-    "baseUrl": ".",
     "paths": {
       "@/*": [
-        "src/*"
+        "./src/*"
       ]
     }
   },
   "include": [
-    "src"
+    "src",
+    "tests"
   ]
 }

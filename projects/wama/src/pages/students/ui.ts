@@ -4,6 +4,7 @@ import { listStudents } from "@/entities/student/repo";
 import { summarizeEvaluations } from "@/entities/student/model";
 import type { Student } from "@/entities/student/model";
 import { renderHeader } from "@/widgets/header/ui";
+import { getSessionHeader } from "@/features/auth/api";
 import { renderStudentTable } from "@/widgets/student-table/ui";
 
 function statCard(label: string, value: HTMLElement, extra?: Child): HTMLElement {
@@ -74,12 +75,16 @@ function renderPagination(total: number): HTMLElement {
 // 학원생 목록 페이지 조합 (표시만 — 데이터는 repo에서, 판단 로직 없음).
 export async function mountStudentsPage(root: HTMLElement): Promise<void> {
   const students = await listStudents();
+  const hdr = await getSessionHeader();
   root.replaceChildren(
-    renderHeader("온마음수학학원", { name: "김지현 선생님", role: "담임 · 중등부" }),
+    renderHeader(hdr.academyName, { name: hdr.teacherName }),
     el("main", { class: "container page" },
-      el("div", {},
-        el("h1", { class: "page__title" }, "학원생 목록"),
-        el("p", { class: "page__desc" }, "담당 학생을 훑어보고, 이름을 눌러 상세로 이동하세요."),
+      el("div", { class: "page-head" },
+        el("div", {},
+          el("h1", { class: "page__title" }, "학원생 목록"),
+          el("p", { class: "page__desc" }, "담당 학생을 훑어보고, 이름을 눌러 상세로 이동하세요."),
+        ),
+        el("a", { class: "btn-ghost btn-ghost--sm", href: "#/subjects" }, "과목 관리"),
       ),
       renderStats(students),
       renderToolbar(),

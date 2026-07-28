@@ -8,10 +8,20 @@ const PROTECTED = [
   { p: "gates/", why: "판정 레이어는 제안 후 사용자가 반영한다 (retro/setup 절차)" },
 ];
 const input = JSON.parse(readFileSync(0, "utf-8"));
-const path = input.tool_input?.file_path ?? "";
-const hit = PROTECTED.find(({ p }) => path.includes(p));
+const ti = input.tool_input ?? {};
+const target = ti.file_path ?? "";   // Edit/Write/MultiEdit
+const cmd = ti.command ?? "";        // Bash
+
+// bash 명령이 보호 경로에 '쓰기'로 닿는지 (리다이렉트 대상 / sed -i / tee / cp·mv 목적지). 읽기는 허용.
+function bashWritesTo(p) {
+  const e = p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`(?:>>?|\\btee\\b(?:\\s+-a)?)\\s*['"]?[^'"|&;]*${e}`).test(cmd)
+      || new RegExp(`\\bsed\\b[^|;&]*-i[^|;&]*${e}`).test(cmd)
+      || new RegExp(`\\b(?:cp|mv)\\b[^|;&]*${e}`).test(cmd);
+}
+const hit = PROTECTED.find(({ p }) => target.includes(p) || bashWritesTo(p));
 if (hit) {
-  console.error(`${path} 는 보호 파일. ${hit.why}. 수정이 필요하면 내용을 제안하고 사용자에게 요청하라.`);
+  console.error(`보호 파일(${hit.p}) 수정 시도. ${hit.why}. 내용을 제안하고 사용자에게 요청하라.`);
   process.exit(2);
 }
 process.exit(0);

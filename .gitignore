@@ -4,3 +4,5 @@ devserver.log
 .env
 .env.*
 !.env.example
+projects/
+supabase/**

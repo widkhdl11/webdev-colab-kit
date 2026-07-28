@@ -64,7 +64,7 @@ write("package.json", JSON.stringify({
 write("tsconfig.json", JSON.stringify({
   compilerOptions: {
     target: "ES2022", module: "ES2022", moduleResolution: "bundler",
-    strict: true, noEmit: false, outDir: "dist",
+    strict: true, skipLibCheck: true, noEmit: false, outDir: "dist",
     baseUrl: ".", paths: { "@/*": ["src/*"] },
   },
   include: ["src"],

@@ -2,9 +2,9 @@
 // 결정론 게이트. 위반 시 exit 2 (stderr가 모델에 주입됨)
 // 사용: node gates/run-gates.mjs [--quick]  (--quick: tsc/테스트/스펙커버리지 생략)
 // 프로젝트는 projects/<이름>/ 에 산다. projects/*/src 를 모두 스캔한다.
-import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
-import { join, relative, resolve, dirname, sep } from "node:path";
 import { spawnSync } from "node:child_process";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
+import { dirname, join, relative, resolve, sep } from "node:path";
 
 const ROOT = process.cwd();
 const PROJECTS = join(ROOT, "projects");
@@ -91,6 +91,26 @@ for (const projDir of projectDirs) {
     }
   }
 }
+
+  // 1'') SQL 보안: security definer 함수는 search_path 를 빈 문자열('')로 고정해야 pg_temp 섀도잉을 막는다.
+  //      create or replace 는 마지막 정의가 실제 적용본 → 함수명별 '마지막 정의'만 판정(옛 정의 오탐 방지).
+  for (const projDir of projectDirs) {
+    const sqlFiles = walk(join(projDir, "supabase")).filter((f) => f.endsWith(".sql")).sort();
+    const lastDef = new Map();
+    for (const file of sqlFiles) {
+      const src = readFileSync(file, "utf-8");
+      for (const chunk of src.split(/create\s+(?:or\s+replace\s+)?function/i).slice(1)) {
+        const decl = chunk.split(/\bas\s*\$/i)[0];
+        const m = chunk.match(/^\s*(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?\s*\(/i);
+        if (!m) continue;
+        const name = m[1].toLowerCase();
+        if (!/security\s+definer/i.test(decl)) { lastDef.delete(name); continue; }
+        lastDef.set(name, { safe: /set\s+search_path\s*(?:=|to)\s*''/i.test(decl), file: relative(ROOT, file) });
+      }
+    }
+    for (const [name, { safe, file }] of lastDef)
+      if (!safe) errors.push(`[security/DEFINER_SEARCH_PATH] ${file} — 함수 ${name}(): security definer 는 set search_path 를 빈 문자열('')로 고정해야 pg_temp 섀도잉을 막는다`);
+  }
 
 // 1') 디자인 국면 강제 (아티팩트 의존): UI 레이어(pages/widgets) 작업은
 //     그 프로젝트의 승인된 design-rules.md(status: approved)를 선행해야 한다.

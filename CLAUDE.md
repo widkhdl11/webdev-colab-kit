@@ -37,7 +37,7 @@
   - 건너뜀: kickoff 인터뷰, spec, checkpoint.
   - 유지: 한 문단 요약→동의, 자동 게이트(FSD·보안 regex), 완료 시 리뷰어 1개.
   - wrap-up은 한 줄로.
-- **정식 경로 (위험·새 방향):** 위험 기능(결제·인증·권한·동시성), 새 도메인 로직,
+- **정식 경로 (위험·새 방향):** 위험 기능(결제·인증·권한·동시성·시변/파생 상태), 새 도메인 로직,
   새 시각 방향(첫 페이지·새 레이아웃 언어), 데이터 모델 변경.
   - 전체 절차: (필요시) spec → (새 시각 방향이면) 디자인 국면(design-interview→시안→checkpoint) → 구현 → 리뷰어 3종 → test-auditor.
 
@@ -45,7 +45,8 @@
 
 - UI/페이지 작업 시작 전: projects/<이름>/design-rules.md (checkpoint로 승인된 기준)
 - 새 시각 방향(첫 화면·새 레이아웃) 시작 전: .claude/rules/design-drafting.md — 시안 먼저 절차(design-interview 스킬이 진입점)
-- 위험 기능(결제·인증·권한·동시성) 구현 전: docs/specs/ 의 해당 스펙 (없으면 /spec 먼저)
+- 위험 기능(결제·인증·권한·동시성·시변/파생 상태) 구현 전: docs/specs/ 의 해당 스펙 (없으면 /spec 먼저)
+- 데이터 모델(엔티티·필드) 설계 시: docs/references/modeling-checklist.md (얕게=kickoff, 깊게=/spec)
 - 과거 결정의 이유: docs/DECISIONS.md / 반복 실수 패턴: docs/LESSONS.md
 
 ## 세션 종료 시

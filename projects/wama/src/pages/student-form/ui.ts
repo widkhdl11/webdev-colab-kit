@@ -1,28 +1,24 @@
 import { el } from "@/shared/lib/dom";
-import type { Child } from "@/shared/lib/dom";
-import { getStudentProfile } from "@/entities/student/repo";
-import { ageFromBirthDate, gradeFromBirthDate, effectiveGrade, GRADE_LADDER } from "@/entities/student/model";
+import { field, textInput, selectInput, staticField, formNote, withPending } from "@/shared/lib/form";
+import { getStudentProfile, createStudent, updateStudent, type StudentInput } from "@/entities/student/repo";
+import {
+  ageFromBirthDate, gradeFromBirthDate, gradeNumberOf, effectiveGrade, GRADE_LADDER,
+} from "@/entities/student/model";
 import type { StudentProfile } from "@/entities/student/model";
 import { renderHeader } from "@/widgets/header/ui";
-
-const SUBJECTS = ["초등 수학", "수학(공통)", "미적분", "확률과 통계", "기하", "심화 문제풀이"] as const;
+import { getSessionHeader } from "@/features/auth/api";
 
 type Mode = "create" | "edit";
 
-function field(labelText: string, control: HTMLElement, hint?: Child): HTMLElement {
-  const label = el("label", { class: "form-field__label" }, labelText);
-  if (control.id) label.setAttribute("for", control.id);
-  return el("div", { class: "form-field" }, label, control, hint ?? null);
-}
-
-function textInput(id: string, value: string, placeholder: string): HTMLInputElement {
-  return el("input", { id, class: "input input--block", type: "text", value, placeholder });
-}
-
-function selectInput(id: string, options: readonly string[], selected: string): HTMLSelectElement {
-  return el("select", { id, class: "select select--block" },
-    ...options.map((o) => el("option", o === selected ? { selected: "" } : {}, o)),
-  );
+// 보정 오프셋 = 지정 학년 번호 − 표준(생년월일 파생) 학년 번호. 매년 표준이 오르면 보정 학년도 함께 오른다.
+// 표준 학년이 범위 밖(null)이거나 미지정이면 0(표준).
+function computeGradeOffset(birthDate: string, overrideOn: boolean, selectedGrade: string): number {
+  if (!overrideOn || !birthDate) return 0;
+  const base = gradeFromBirthDate(birthDate, new Date());
+  const baseNum = base ? gradeNumberOf(base) : null;
+  const selNum = gradeNumberOf(selectedGrade);
+  if (baseNum == null || selNum == null) return 0;
+  return selNum - baseNum;
 }
 
 function ageLabel(birthDate: string): string {
@@ -97,20 +93,50 @@ function renderForm(mode: Mode, profile: StudentProfile | null): HTMLElement {
     ageHint.textContent = birth.value ? ageLabel(birth.value) : "생년월일을 입력하면 나이가 자동 계산됩니다";
   });
 
+  const note = formNote();
+  const submit = el("button", { class: "btn-primary", type: "submit" },
+    mode === "create" ? "학생 등록" : "변경 저장") as HTMLButtonElement;
+
   const form = el("form", { class: "form-card", novalidate: "" },
     field("이름", textInput("f-name", p?.name ?? "", "학생 이름")),
     field("생년월일", birth, ageHint),
     gradeBlock(birth, p),
     field("학교", textInput("f-school", p?.school ?? "", "예: 서일중학교")),
-    field("담당 과목", selectInput("f-subject", SUBJECTS, p?.subject ?? SUBJECTS[0])),
+    // 과목은 여기서 받지 않는다 — 한 학생이 여러 과목을 과목마다 다른 요일·시간에 듣는다(1:N).
+    // 수강 과목·시간은 시간표 등록에서 관리한다.
+    staticField("수강 과목", "등록 후 시간표에서 추가합니다 (과목마다 요일·시간)"),
+    note.node,
     el("div", { class: "form-actions" },
       el("a", { class: "btn-ghost", href: backHref(mode, p) }, "취소"),
-      el("button", { class: "btn-primary", type: "submit" }, mode === "create" ? "학생 등록" : "변경 저장"),
+      submit,
     ),
   );
 
-  // 저장 로직은 데이터 계층 재개 시 연결(features). 지금은 화면 확인용 — 제출 시 이동/전송 없음.
-  form.addEventListener("submit", (e) => e.preventDefault());
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input: StudentInput = {
+      name: (form.querySelector<HTMLInputElement>("#f-name")?.value ?? ""),
+      birthDate: (form.querySelector<HTMLInputElement>("#f-birth")?.value ?? ""),
+      gradeOffset: computeGradeOffset(
+        birth.value,
+        form.querySelector<HTMLInputElement>("#f-grade-override")?.checked ?? false,
+        form.querySelector<HTMLSelectElement>("#f-grade")?.value ?? "",
+      ),
+      school: (form.querySelector<HTMLInputElement>("#f-school")?.value ?? ""),
+    };
+    void withPending(submit, async () => {
+      note.clear();
+      if (mode === "edit" && p) {
+        const res = await updateStudent(p.id, input);
+        if (!res.ok) { note.show("error", res.error); return; }
+        location.hash = `#/students/${p.id}`;
+      } else {
+        const res = await createStudent(input);
+        if (!res.ok) { note.show("error", res.error); return; }
+        location.hash = `#/students/${res.value}`;
+      }
+    });
+  });
   return form;
 }
 
@@ -121,6 +147,7 @@ function backHref(mode: Mode, p: StudentProfile | null): string {
 // 학생 등록/수정 폼 페이지 조합 (표시만 — 데이터는 repo에서, 저장 로직 없음).
 export async function mountStudentFormPage(root: HTMLElement, mode: Mode, id?: string): Promise<void> {
   const profile = mode === "edit" && id ? await getStudentProfile(id) : null;
+  const hdr = await getSessionHeader();
   const isMissing = mode === "edit" && !profile;
 
   const title = mode === "create" ? "학생 등록" : "학생 정보 수정";
@@ -129,7 +156,7 @@ export async function mountStudentFormPage(root: HTMLElement, mode: Mode, id?: s
     : "학생의 기본 정보를 수정합니다.";
 
   root.replaceChildren(
-    renderHeader("온마음수학학원", { name: "김지현 선생님", role: "담임 · 중등부" }),
+    renderHeader(hdr.academyName, { name: hdr.teacherName }),
     el("main", { class: "container page form-page" },
       el("a", { class: "back-link", href: backHref(mode, profile) }, "← 돌아가기"),
       el("div", {},

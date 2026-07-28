@@ -44,6 +44,10 @@ const plan = read("PLAN.md");
 const done = (plan.match(/- \[x\]/g) ?? []).length;
 const total = done + (plan.match(/- \[ \]/g) ?? []).length;
 
+// 5.5. 하네스 백로그 — 보류된 업그레이드가 있으면 리마인드(비면 침묵). 승격 트리거는 retro가 판정.
+const backlog = read("docs/references/harness-backlog.md");
+const pendingUpgrades = (backlog.match(/^- \[ \]/gm) ?? []).length;
+
 console.log("── 세션 브리핑 ──");
 console.log(`▣ 대기 중인 결정: ${pending.length > 0 ? pending.join(" / ") : "없음"}`);
 console.log(`● 게이트: ${gateLight}`);
@@ -51,3 +55,4 @@ console.log(`↩ 멈춘 지점: ${stopped}`);
 console.log(`→ 다음 할 일: ${next}`);
 if (principleWarn) console.log(principleWarn);
 if (total > 0) console.log(`▤ 필수 기능 진행: ${done}/${total}`);
+if (pendingUpgrades > 0) console.log(`⚙ 보류된 하네스 승격: ${pendingUpgrades}건 (docs/references/harness-backlog.md)`);

@@ -6,7 +6,7 @@ export interface Student {
   readonly name: string;
   readonly grade: string; // 예: "중3", "고1"
   readonly school: string;
-  readonly subject: string; // 담당 과목
+  readonly subjects: readonly string[]; // 수강 과목 1:N — 시간표(과목·요일·시간)에서 파생. 학생 단일 필드 아님.
   readonly lastEvalMonth: string; // "YYYY.MM"
   readonly evalStatus: EvalStatus;
 }
@@ -27,7 +27,7 @@ export interface StudentProfile {
   readonly birthDate: string; // ISO "2011-04-12" — 저장 기준(불변)
   readonly gradeOffset: number; // 0 = 자동(표준), 음수 = 유급, 양수 = 조기/빠른년생
   readonly school: string;
-  readonly subject: string;
+  // 과목은 등록이 아니라 시간표에서 관리(1:N, 과목마다 요일·시간) — 프로필에 두지 않는다.
 }
 
 // 만 나이 파생 — 표시 레이어가 아니라 여기(entities)에서 계산한다. today 는 경계에서 주입.

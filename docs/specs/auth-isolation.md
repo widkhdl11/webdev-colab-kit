@@ -1,7 +1,8 @@
 ---
 feature: 인증·학원 격리 (auth & academy isolation)
-status: draft        # 설계는 2026-07-21 사용자 승인됨(유효). 연습 스코프상 테스트는 보류 —
-                     # Supabase 준비 후 INV 테스트 착수 시 approved로 전환(그때 rules/tdd.md대로 테스트부터).
+status: approved     # 설계 승인 2026-07-21. 2026-07-25 Supabase 프로비저닝 + INV-A1~A8 통합 테스트
+                     # (projects/wama/tests/inv/auth-isolation.integration.test.ts) green → approved 전환.
+                     # 보안 강화 이력: 0003(gen_random_bytes 스키마 버그), 0004(search_path pg_temp 섀도잉).
 ---
 # 인증·학원 격리 스펙
 

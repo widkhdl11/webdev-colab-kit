@@ -4,7 +4,7 @@ description: 결제·인증·권한·동시성, 또는 시간에 따라 변하�
 argument-hint: [기능명]
 ---
 # 스펙 — 테스트로 컴파일 가능한 불변식 문서
-docs/specs/_TEMPLATE.md 형식으로 docs/specs/$ARGUMENTS.md 를 작성한다.
+활성 프로젝트(루트 ACTIVE)의 projects/<이름>/docs/specs/_TEMPLATE.md 형식으로 projects/<이름>/docs/specs/$ARGUMENTS.md 를 작성한다.
 
 ## 절차
 1. 기능의 "어기면 사고"를 사용자와 함께 나열 → 각각을 불변식 문장으로.

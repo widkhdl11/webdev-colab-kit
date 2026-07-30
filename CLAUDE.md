@@ -6,16 +6,16 @@
 ## 세션 시작 시
 
 1. SessionStart 훅의 브리핑을 확인한다 (대기 결정·게이트·멈춘 지점·다음 할 일)
-2. PLAN.md가 비어 있으면 kickoff 스킬로 시작한다
+2. 활성 프로젝트(루트 ACTIVE 파일이 가리키는 이름)의 PRODUCT.md가 비어 있거나 활성 프로젝트가 없으면 kickoff 스킬로 시작한다
 
 ## 항상 지키는 규칙 (이 파일에만 존재)
 
 - 불확실하면 진행하지 말고 물어라. 추측 코드가 질문보다 비싸다
 - 구현 전: 무엇을 어디에 만들지 한 문단 요약 → 동의 → 시작
-- PLAN.md의 비범위 기능은 요청받아도 먼저 지적. 필수에 없는 기능 임의 추가 금지
+- PRODUCT.md의 비범위 기능은 요청받아도 먼저 지적. 필수에 없는 기능 임의 추가 금지
 - 결정이 내려지면 즉시 문서 갱신. 대화와 문서가 다르면 문서가 우선
 - 새 시각 방향(첫 페이지·새 레이아웃 언어)은 디자인 국면으로: design-interview(취향 상담)
-  →design-drafter(정적 시안)→checkpoint 승인→projects/<이름>/design-rules.md 확정. 크게 만들기 전에
+  →design-drafter(정적 시안)→checkpoint 승인→projects/<이름>/docs/design/design-rules.md 확정. 크게 만들기 전에
   버려도 싼 시안으로 먼저 반복 — 이미 승인된 방향의 반복은 제외(빠른 경로).
   순서 상세는 .claude/rules/design-drafting.md
 - "테스트/검증했다"는 보고는 실행한 명령과 출력을 근거로만
@@ -25,7 +25,8 @@
 - FSD 6레이어, import는 아래 방향만. TypeScript strict, any 금지
 - 편집 시 훅이 게이트를 실행한다. 실패 메시지가 오면 새 기능 없이 위반만 수정
 - 레이어별 상세 규칙은 .claude/rules/ 가 해당 경로 작업 시 자동 로드된다
-- 프로젝트 코드는 projects/<이름>/ 아래(각자 src/ + 설정파일). 킷(.claude·gates·scripts·docs)은 루트 상주
+- 프로젝트 코드는 projects/<이름>/ 아래(각자 src/ + 설정파일). 킷(.claude·gates·scripts, 그리고 루트 docs/의 LESSONS·references)은 루트 상주
+- 프로젝트 문서는 projects/<이름>/ 하위(workspace/=과정 기록, docs/=정의·참고). 활성 프로젝트는 루트 ACTIVE 파일이 가리킨다
 
 ## 작업 등급 — 절차를 리스크에 맞춘다 (구현 전 먼저 판단)
 
@@ -43,15 +44,15 @@
 
 ## 필요할 때만 읽는 문서 (라우팅)
 
-- UI/페이지 작업 시작 전: projects/<이름>/design-rules.md (checkpoint로 승인된 기준)
+- UI/페이지 작업 시작 전: projects/<이름>/docs/design/design-rules.md (checkpoint로 승인된 기준)
 - 새 시각 방향(첫 화면·새 레이아웃) 시작 전: .claude/rules/design-drafting.md — 시안 먼저 절차(design-interview 스킬이 진입점)
-- 위험 기능(결제·인증·권한·동시성·시변/파생 상태) 구현 전: docs/specs/ 의 해당 스펙 (없으면 /spec 먼저)
+- 위험 기능(결제·인증·권한·동시성·시변/파생 상태) 구현 전: projects/<이름>/docs/specs/ 의 해당 스펙 (없으면 /spec 먼저)
 - 데이터 모델(엔티티·필드) 설계 시: docs/references/modeling-checklist.md (얕게=kickoff, 깊게=/spec)
-- 과거 결정의 이유: docs/DECISIONS.md / 반복 실수 패턴: docs/LESSONS.md
+- 과거 결정의 이유: projects/<이름>/workspace/DECISIONS.md / 반복 실수 패턴: docs/LESSONS.md
 
 ## 세션 종료 시
 
-- wrap-up 스킬로 PROGRESS.md "현재 상태"를 갱신한다 (5개 필드, 10줄 이내)
+- wrap-up 스킬로 projects/<이름>/workspace/PROGRESS.md "현재 상태"를 갱신한다 (5개 필드, 10줄 이내)
 - 큰 진전이 있었으면 retro 스킬을 제안한다
 
 ## 기능 완성 시 (등급별)

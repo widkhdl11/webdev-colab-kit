@@ -12,10 +12,10 @@ description: 새 시각 방향의 화면을 만들기 전, 디자인 취향을 �
 ## 언제 쓰나 (경계)
 - **쓴다**: 새 시각 방향이 필요한 화면 (첫 메인 페이지, 홈과 구조가 다른 게시판·지갑·대시보드).
   rules/design-drafting.md 의 "새 방향" 판단과 같은 기준.
-- **안 쓴다**: `projects/<이름>/design-rules.md` 로 이미 승인된 방향의 반복 화면. 그건 상담 없이 바로 구현.
+- **안 쓴다**: `projects/<이름>/docs/design/design-rules.md` 로 이미 승인된 방향의 반복 화면. 그건 상담 없이 바로 구현.
 
 ## 절차
-1. 아래 템플릿으로 `projects/<이름>/design/INTERVIEW.md` 생성 → 사용자에게 채워달라고 요청
+1. 아래 템플릿으로 `projects/<이름>/docs/design/INTERVIEW.md` 생성 → 사용자에게 채워달라고 요청
 2. 사용자가 채우면 읽는다. 레퍼런스 URL 은 style-scout 파견(Playwright 연결 시),
    스크린샷은 직접 분석 → 결과를 양식의 해당 칸에 반영
 3. 양식 갱신: 모순 지적, 빈칸에 조사 기반 추천값 제안, 후속 질문 삽입
@@ -24,15 +24,15 @@ description: 새 시각 방향의 화면을 만들기 전, 디자인 취향을 �
 6. **[게이트 A]** 승인되면 결정 사항만 추출한다. 그다음:
    - **첫 시각 방향이면**(design-rules.md 가 비었거나 이 화면이 새 언어를 정의하면):
      결론을 다음 단계 시안의 근거로 삼아 `design-drafter` 에 넘긴다.
-   - 상담 결과 자체는 `projects/<이름>/design/INTERVIEW.md` 에 남는다(과정 보관). 확정 기준은
-     시안 checkpoint 승인 후에야 `projects/<이름>/design-rules.md` 에 기록된다(승인의 결과물).
+   - 상담 결과 자체는 `projects/<이름>/docs/design/INTERVIEW.md` 에 남는다(과정 보관). 확정 기준은
+     시안 checkpoint 승인 후에야 `projects/<이름>/docs/design/design-rules.md` 에 기록된다(승인의 결과물).
 
 ## 다음 단계로 연결 (v2 흐름)
 ```
 design-interview (이 스킬, 상담)
-  → design-drafter (projects/<이름>/mockups/<화면>.html 시안)
+  → design-drafter (projects/<이름>/docs/design/mockups/<화면>.html 시안)
   → [checkpoint] 시안 승인/수정 반복
-  → projects/<이름>/design-rules.md 에 확정 기준 기록 + tokens.css 갱신
+  → projects/<이름>/docs/design/design-rules.md 에 확정 기준 기록 + tokens.css 갱신
   → 구현
 ```
 이 스킬은 위 흐름의 **첫 칸(상담)**만 담당한다. 시안 생성부터는 design-drafter,
@@ -44,7 +44,7 @@ design-interview (이 스킬, 상담)
 - 해소된 질문 블록은 다음 갱신 때 제거해 양식을 얇게 유지한다
 
 ## 기존 기준과의 관계
-`projects/<이름>/design-rules.md` 에 이미 승인된 전역 기준이 있으면, 그것과 **충돌하지 않는 범위**에서
+`projects/<이름>/docs/design/design-rules.md` 에 이미 승인된 전역 기준이 있으면, 그것과 **충돌하지 않는 범위**에서
 이 화면 고유의 디자인만 상담한다. 전역 톤(예: 인디고 단일 강조)을 뒤집는 제안이 나오면
 사용자에게 "전역 방향을 바꾸는 결정입니다" 라고 명시하고 확인받는다.
 
@@ -75,7 +75,7 @@ design-interview (이 스킬, 상담)
 ## 4. 색
 - 확정 브랜드/포인트 컬러 (있으면 hex 나 이름):
 - 없으면 비워두세요 → 무드 기준으로 2~3안 제안드립니다
-  (projects/<이름>/design-rules.md 에 전역 브랜드색이 있으면 그것을 기본 전제로 합니다)
+  (projects/<이름>/docs/design/design-rules.md 에 전역 브랜드색이 있으면 그것을 기본 전제로 합니다)
 
 ## 5. 구성
 - 반드시 들어가야 할 섹션/요소:

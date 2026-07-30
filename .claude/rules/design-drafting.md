@@ -7,7 +7,7 @@
 
 작업 등급(CLAUDE.md)의 시각 버전이다. 화면 작업 시작 전에 먼저 판단한다:
 
-- **반복 (빠른 경로)**: `projects/<이름>/design-rules.md` 로 이미 승인된 레이아웃 언어를 물려받는 화면.
+- **반복 (빠른 경로)**: `projects/<이름>/docs/design/design-rules.md` 로 이미 승인된 레이아웃 언어를 물려받는 화면.
   (예: 홈이 승인됐고 상세·개설 폼이 같은 카드/폼 언어를 씀)
   → **시안 건너뛴다.** design-rules.md 를 근거로 바로 구현. checkpoint 불필요.
 
@@ -24,12 +24,12 @@
    → 결론이 다음 시안의 근거가 된다.
 1. (레퍼런스 URL 이 있고 Playwright 연결됐으면) `style-scout` 파견 — 스타일 프로필 수집.
    미연결이면 사용자에게 스크린샷 요청. (0의 상담 중에 병행 가능)
-2. `design-drafter` 위임 → `projects/<이름>/mockups/<화면명>.html` 시안 생성 (필요시 -a/-b 비교안).
+2. `design-drafter` 위임 → `projects/<이름>/docs/design/mockups/<화면명>.html` 시안 생성 (필요시 -a/-b 비교안).
    비즈니스 로직 없는 정적 HTML. design-rules.md 를 근거로.
 3. **[checkpoint]** 시안을 브라우저로 열어보게 안내하고 승인받는다. 피드백이 있으면
    drafter 에 재위임(원문 전달). 코드가 아니라 시안을 버리며 반복한다.
 4. 승인되면:
-   - 새로 확정된 시각 기준을 `projects/<이름>/design-rules.md` 에 한 블록 추가
+   - 새로 확정된 시각 기준을 `projects/<이름>/docs/design/design-rules.md` 에 한 블록 추가
      (날짜 · 화면명 · checkpoint 승인 · 톤/색/형태/타이포/레이아웃)
    - 파일 상단에 프론트매터 `status: approved` 를 둔다 — 게이트(design/BEFORE_UI)가 이걸 보고
      pages/widgets 구현을 허용한다. 없으면 화면 작업이 차단된다.

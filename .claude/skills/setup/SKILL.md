@@ -1,16 +1,16 @@
 ---
 name: setup
-description: kickoff로 PLAN.md가 승인된 직후 사용. 프로젝트 특성에 맞춰 하네스 구성(rules, 서브에이전트, 게이트 규칙)을 제안하고 사용자 승인 후 생성한 뒤, 스캐폴딩을 실행하는 절차. 킷 기본 구성이 충분하면 아무것도 만들지 않는다.
+description: kickoff로 PRODUCT.md가 승인된 직후 사용. 프로젝트 특성에 맞춰 하네스 구성(rules, 서브에이전트, 게이트 규칙)을 제안하고 사용자 승인 후 생성한 뒤, 스캐폴딩을 실행하는 절차. 킷 기본 구성이 충분하면 아무것도 만들지 않는다.
 ---
 # 셋업 — 이 프로젝트에 맞는 하네스 구성 + 프로젝트 골격
-목표: PLAN.md의 결정에서 파생되는 프로젝트 고유 구성만 추가한다. 기본 구성은 건드리지 않는다.
+목표: PRODUCT.md의 결정에서 파생되는 프로젝트 고유 구성만 추가한다. 기본 구성은 건드리지 않는다.
 
 ## 절차
-1. PLAN.md와 docs/DECISIONS.md를 읽고 프로젝트 고유 요소를 추린다
+1. projects/<이름>/docs/PRODUCT.md와 projects/<이름>/workspace/DECISIONS.md를 읽고 프로젝트 고유 요소를 추린다
 2. 각 요소에 "구성 추가가 필요한가"를 아래 기준으로 판정
 3. 추가할 것을 근거와 함께 제안 — 항목마다 "왜 기본 구성으로 부족한가" 한 줄 필수
 4. 항목별로 사용자 승인 (일괄 승인 요청 금지). 승인된 것만 생성
-5. `node scripts/scaffold.mjs <프로젝트명>` 실행(PLAN.md의 프로젝트 슬러그를 이름으로 → projects/<프로젝트명>/ 생성) → `node gates/run-gates.mjs`로 골격 검증
+5. `node scripts/scaffold.mjs <프로젝트명>` 실행(루트 ACTIVE의 프로젝트 이름으로 → projects/<프로젝트명>/ 골격 생성) → `node gates/run-gates.mjs`로 골격 검증
 6. 생성 결과 보고 + 새 스킬/rules 인식을 위해 세션 재시작이 필요할 수 있음을 안내
 
 ## 생성 판정 기준 (미달이면 만들지 않는 것이 정답)

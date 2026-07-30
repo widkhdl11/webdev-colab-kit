@@ -7,15 +7,31 @@ import { spawnSync } from "node:child_process";
 const ROOT = process.cwd();
 const read = (p) => (existsSync(join(ROOT, p)) ? readFileSync(join(ROOT, p), "utf-8") : "");
 
+// 0. 활성 프로젝트 — 루트 ACTIVE 파일이 가리킨다(한 줄, 프로젝트 이름).
+//    ACTIVE 가 없거나 projects/<이름>/ 이 아직 없으면: 스캐폴드 전 상태로 보고 안내 후 정상 종료(exit 0).
+//    (게이트의 '검사 대상 없음 → skip' 패턴과 동일 — 빈 레포에서 매 세션 에러로 죽지 않게.)
+const active = read("ACTIVE").trim();
+const projectDir = active ? join("projects", active) : "";
+if (!active || !existsSync(join(ROOT, projectDir))) {
+  console.log("── 세션 브리핑 ──");
+  console.log("활성 프로젝트 없음 — kickoff로 시작하세요. (루트 ACTIVE 파일에 프로젝트 이름 한 줄을 적으면 브리핑이 붙습니다.)");
+  process.exit(0);
+}
+
+// 활성 프로젝트 기준 경로
+const PROGRESS = `${projectDir}/workspace/PROGRESS.md`;
+const PRODUCT = `${projectDir}/docs/PRODUCT.md`;
+const SPECS_REL = `${projectDir}/docs/specs`;
+
 // 1. 대기 중인 결정
 const pending = [];
-const specsDir = join(ROOT, "docs", "specs");
+const specsDir = join(ROOT, projectDir, "docs", "specs");
 if (existsSync(specsDir)) {
   for (const f of readdirSync(specsDir).filter((f) => f.endsWith(".md") && !f.startsWith("_"))) {
-    if (/status:\s*draft/.test(read(join("docs/specs", f)))) pending.push(`스펙 승인 대기: ${f}`);
+    if (/status:\s*draft/.test(read(join(SPECS_REL, f)))) pending.push(`스펙 승인 대기: ${f}`);
   }
 }
-const progress = read("PROGRESS.md");
+const progress = read(PROGRESS);
 const pendingBlock = progress.match(/대기 중인 결정:\s*(.+)/);
 if (pendingBlock && !/없음/.test(pendingBlock[1])) pending.push(pendingBlock[1].trim());
 
@@ -40,7 +56,7 @@ const principleWarn =
     : "";
 
 // 5. 좌표
-const plan = read("PLAN.md");
+const plan = read(PRODUCT);
 const done = (plan.match(/- \[x\]/g) ?? []).length;
 const total = done + (plan.match(/- \[ \]/g) ?? []).length;
 
@@ -48,7 +64,7 @@ const total = done + (plan.match(/- \[ \]/g) ?? []).length;
 const backlog = read("docs/references/harness-backlog.md");
 const pendingUpgrades = (backlog.match(/^- \[ \]/gm) ?? []).length;
 
-console.log("── 세션 브리핑 ──");
+console.log(`── 세션 브리핑 (${active}) ──`);
 console.log(`▣ 대기 중인 결정: ${pending.length > 0 ? pending.join(" / ") : "없음"}`);
 console.log(`● 게이트: ${gateLight}`);
 console.log(`↩ 멈춘 지점: ${stopped}`);

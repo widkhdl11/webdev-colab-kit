@@ -3,6 +3,7 @@ feature: 인증·학원 격리 (auth & academy isolation)
 status: approved     # 설계 승인 2026-07-21. 2026-07-25 Supabase 프로비저닝 + INV-A1~A8 통합 테스트
                      # (projects/wama/tests/inv/auth-isolation.integration.test.ts) green → approved 전환.
                      # 보안 강화 이력: 0003(gen_random_bytes 스키마 버그), 0004(search_path pg_temp 섀도잉).
+inv_hash: 8b2fa8bcd1bd28ea3990dae1277bffee05a14e711ef5573263fc555ab647ab08
 ---
 # 인증·학원 격리 스펙
 

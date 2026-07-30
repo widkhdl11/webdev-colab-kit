@@ -93,3 +93,18 @@ schedule/evaluation의 subject는 여전히 자유 문자열(FK 없음). 편집 
 score/:examId/edit) → 위젯 editHref→editHrefFor(id). 마이그레이션은 scripts/apply-migrations.mjs(Management API)로 적용.
 검증: 통합테스트 17개(INV-A1~A8 + subject·exam 격리) green, 유닛 10, tsc·gates·build green. 리뷰어 3종 반영
 (빈점수 0저장 버그·과목 조용한 재할당·시간표 부분실패 중복·보조쿼리 로그 수정). 시연은 빈 DB에서 추가해가며 시작.
+
+2026-07-28 | wama 배포 = projects/wama를 독립 git 레포(중첩 .git, remote github.com/widkhdl11/wama)로 두고 Vercel Git 자동배포 |
+단일 앱 배포엔 모노레포 Root Directory 조정보다 독립 레포가 단순. 킷 게이트·훅은 파일편집 기준이라 wama에 계속 적용됨(바깥 git 추적만 분리) |
+독립 레포는 앱=루트 → **Vercel Root Directory를 비워야 함**(projects/wama로 두면 package.json 못찾아 빌드 실패, "3 files"·ENOENT).
+supabase/ SQL은 wama 레포에서 gitignore(로컬전용). 환경변수 파일은 gitignore라 Git빌드 시 Vercel에 VITE_SUPABASE_URL/ANON_KEY 등록 필요.
+tsconfig baseUrl는 TS5.9에서 폐기 에러 → 제거(paths만으로 @/* 해석). 앞으로 git -C projects/wama push → 자동배포.
+
+2026-07-28 | 봇/크롤 차단 = robots.txt + noindex + Vercel Bot Protection(Challenge); SSO Deployment Protection은 데모 부적합 |
+데모 링크는 사람은 보고 봇은 막아야 함. Bot Protection Challenge는 브라우저 자동통과·비브라우저 챌린지(관람자 편의 유지) |
+SSO는 관람자까지 로그인벽으로 막음. 프론트 차단과 별개로 anon 키가 공개라 봇이 Supabase 직격 가능 → 백엔드는 CAPTCHA/이메일확인이 실방어선.
+
+2026-07-28 | 프로젝트 관리 토큰(Management API 강력키) 다층 잠금 + 다음 프로젝트부터 Supabase 모던키 |
+"노출되면 조직 전체 위험" → 절대 방지 요청. apply-migrations를 환경변수 전용(파일 미독·값 미출력)·hooks/protect-secrets.mjs
+(환경변수 파일 read·토큰 참조·env 덤프 차단)·settings Read(deny) | 과거 커밋/히스토리 유출無 확인(이번 세션 노출 없었음).
+현행 wama는 legacy anon 유지(동작·지원됨), 신규 프로젝트는 publishable/secret 기본(메모리 supabase-modern-keys).

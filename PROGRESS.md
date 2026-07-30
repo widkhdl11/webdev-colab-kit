@@ -1,19 +1,44 @@
 # PROGRESS.md
 
 ## 현재 상태 (wrap-up이 갱신 — 이 블록만 세션 시작 시 읽힘)
-- 오늘의 목표: 데이터 계층 착수(auth-isolation) + 시험성적 모델 교정 + retro. **전부 달성.**
-- 완료: 시험성적 모델 교정(시험→과목 1:N·시험단위 요약·rowspan 그룹표) / **auth-isolation 데이터 계층 완결**: Supabase
-  wama(ref zubdbqlrcuywvelvnfle) 프로비저닝·마이그레이션 0001~0004·클라이언트 배선(features/auth·인증3화면 실동작·세션가드·
-  로그아웃)·리뷰어 3종(보안 HIGH search_path pg_temp 섀도잉→0004)·**INV-A1~A8 통합테스트 green→스펙 approved** / retro 4건
-  (A definer-search_path 게이트린트·B scaffold skipLibCheck·C 통합테스트분리 tdd.md·D protect-files Bash차단). 필수 2/8.
-- 멈춘 지점: auth-isolation·retro 완결. 미구현: 통계 페이지(pages/stats, 시안 승인됨) / student·schedule·evaluation·
-  exam_score CRUD는 목업 repo(Supabase 미연결). autoconfirm은 대시보드에서 OFF(연습용).
-- 다음 할 일: 통계 페이지 구현(승인 시안 stats.html → pages/stats: 3탭·꺾은선/막대·드릴다운); 그다음 학생·시간표·평가
-  CRUD를 Supabase에 배선(각 스펙 먼저: 재원상태·삭제보존·평가완료-시변·학생과목1:N·교차테이블무결성).
-- 대기 중인 결정: 없음. (이월: 교차테이블 학원무결성 PLAN🟡 · exam_score 테이블 0005)
+- 오늘의 목표: "과목 저장 안 됨" 버그 출발 → 데이터 계층 전면 Supabase 전환 + 배포. **달성.**
+- 완료: subject·student·schedule·evaluation·exam 전 엔티티 Supabase CRUD + 4폼 저장(마이그 0005~0008 실DB, 통합테스트
+  17 green). Vercel 배포 = **독립 wama 레포(github widkhdl11/wama, supabase/ gitignore) → Git 자동배포 파이프라인**.
+  봇차단(robots.txt/noindex + Vercel Bot Protection=Challenge). 시크릿 잠금(SUPABASE_TOKEN: apply-migrations 하드닝·
+  protect-secrets 훅·유출無 확인). 버그수정 다수(시간표 과목드롭다운/요일묶음표시·학생삭제UI·평가=수강과목한정·
+  완료판정=수강전과목·tsconfig baseUrl폐기·세션기반 헤더). 리뷰어 3종 반영.
+- 멈춘 지점: 데이터 계층·배포·자동배포 완결. 미구현: **통계 페이지(pages/stats, 시안 승인됨)**. 정적 placeholder 잔존
+  (학생목록 검색·필터·페이지네이션, "다가오는 시험" 카드, 평가표 내보내기).
+- 다음 할 일: 통계 페이지 구현(승인 시안 stats.html → pages/stats: 3탭·꺾은선/막대·드릴다운).
+- 대기 중인 결정: 없음. (참고: 실배포 시 이메일확인 재활성 · schedule/evaluation student_id 학원검증 미적용(exam RPC만) ·
+  다음 프로젝트부터 Supabase 모던키)
 
 ---
 ## 로그 (append-only — 필요할 때만 검색)
+
+### 2026-07-28 (데이터 계층 전면 Supabase 전환 + 배포)
+- 출발: "과목 삭제/추가 저장 안 됨" 버그 → 조사 결과 앱 데이터 계층 대부분이 목업+저장없음이고 스키마가 도메인 모델과
+  갈라진 상태(student.age↔birthDate, exam 테이블 부재) 확인. 통계 제외 전 기능 실동작화로 확장.
+- 마이그레이션(scripts/apply-migrations.mjs = Management API로 실DB 적용): 0005 subject(테이블+RLS+기존학원 6과목 시드),
+  0006 student age→birth_date+grade_offset·schedule teacher·academy_id default current_academy_id(), 0007 exam+exam_score
+  1:N+RLS(자식은 부모 소속으로 격리)+원자적 RPC create/update_exam_with_scores(security invoker), 0008 exam RPC에 student
+  소속 검증. 통합테스트 tests/inv에 subject·exam 격리 4건 추가 → 17 green.
+- repo 5개 목업→Supabase. 규약: 읽기(list/get)=도메인타입+실패시 빈결과+console.error, 쓰기=Result+폼 에러표시.
+  파생필드(학년=birthDate·수강과목=schedule distinct·평가상태) 다른표에서 배치쿼리로 계산. **평가완료=수강 전 과목이
+  이번달 평가 완료**(기존 "아무거나 하나"에서 변경). 폼 4개 저장 배선, 편집 라우트에 :evalId/:examId 부여(위젯 editHrefFor).
+- 리뷰어 3종(code·security·ui) 반영: 빈점수 0저장(NaN로), 평가 과목 조용한 재할당, 시간표 부분실패 중복, 보조쿼리 로그.
+- 버그수정: 시간표 과목드롭다운=학원과목 전체(수강과목 우선 아님), 요일당1행→같은과목 요일칩 묶음표시(삭제=묶음전체),
+  평가 과목=수강과목 한정, 학생 삭제 UI(상세 두번눌러확정+CASCADE), tsconfig baseUrl 제거(TS5.9 폐기 에러), 세션기반 헤더.
+- 배포: (1) CLI로 빌드 dist 직접 업로드(env가 번들에 구워짐 — Vercel env 불필요) → (2) **projects/wama를 독립 git 레포로
+  (중첩 .git, remote github.com/widkhdl11/wama) → Vercel Git 자동배포**. 독립 레포는 앱=루트라 Vercel Root Directory 비워야 함
+  (projects/wama로 두면 package.json 못찾아 실패). supabase/는 wama 레포에서 gitignore(로컬전용; GitHub 삭제+pull로 로컬도
+  지워졌던 걸 git 히스토리에서 복원). URL: wama-widkhdl11s-projects.vercel.app.
+- 봇/크롤 차단: robots.txt Disallow:/ + noindex meta + Vercel Firewall Bot Protection=Challenge(비브라우저 챌린지). SSO
+  Deployment Protection은 관람자도 막아 데모엔 부적합 → Bot Protection 권장. 백엔드는 anon 공개라 Supabase CAPTCHA/이메일확인 필요.
+- 시크릿 잠금(SUPABASE_TOKEN=Management API 강력키): apply-migrations를 process.env 전용으로(파일 안읽음·값 미출력),
+  .claude/hooks/protect-secrets.mjs 신설(.env read + SUPABASE_TOKEN 참조 + env 덤프 차단, 4케이스 검증), settings.json
+  Read(./.env*) deny. 과거 커밋/히스토리 유출無 확인. 다음 프로젝트부터 Supabase 모던키(publishable/secret) — 메모리 저장.
+- 검증: 매 단계 tsc·gates·vite build green, 통합테스트 17 green, 배포 Ready.
 
 ### 2026-07-25
 - exam-score 모델 교정: ExamScore(평평) → Exam(부모)+SubjectScore(자식), summarizeScores 시험단위 재작성(examAvgPct),

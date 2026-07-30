@@ -50,6 +50,26 @@
 - 데이터 모델(엔티티·필드) 설계 시: docs/references/modeling-checklist.md (얕게=kickoff, 깊게=/spec)
 - 과거 결정의 이유: projects/<이름>/workspace/DECISIONS.md / 반복 실수 패턴: docs/LESSONS.md
 
+## 발견·결정을 어디에 적나 (문서 라우팅)
+
+경로는 활성 프로젝트(projects/<이름>/) 기준. 대화 중 뭔가 정해지면 아래 표대로 그 자리에 기록한다.
+
+| 종류 | 행선지 | 조건 |
+|---|---|---|
+| 스코프 변화 (기능 추가·제거·비범위) | docs/PRODUCT.md | 사용자 동의 필수 |
+| 동작 상세 | 해당 스펙 🔓 구역 | 코드보다 먼저 갱신 |
+| 어기면 사고 | 해당 스펙 불변식 🔒 | 승인·재봉인 필요 |
+| 트레이드오프의 이유 | workspace/DECISIONS.md | append-only |
+| 시각 기준 | docs/design/design-rules.md | checkpoint 경유 |
+
+## 커밋 규약
+
+- 하네스 변경: `harness: <무엇> — <왜>`
+- 프로젝트 코드: `feat|fix(<프로젝트>): ...`
+- 프로젝트 문서: `docs(<프로젝트>): ...`
+- 잡정리: `chore: ...`
+- 하네스와 프로젝트 변경을 한 커밋에 섞지 않는다.
+
 ## 세션 종료 시
 
 - wrap-up 스킬로 projects/<이름>/workspace/PROGRESS.md "현재 상태"를 갱신한다 (5개 필드, 10줄 이내)

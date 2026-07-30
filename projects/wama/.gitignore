@@ -1,0 +1,8 @@
+node_modules/
+dist/
+devserver.log
+.env
+.env.*
+!.env.example
+# DB 마이그레이션 SQL 은 로컬에만 보관(GitHub push 제외) — 사용자 요청 2026-07-27
+# supabase/

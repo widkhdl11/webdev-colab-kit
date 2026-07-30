@@ -1,4 +1,5 @@
 # DECISIONS.md — 결정 기록
+
 형식: 날짜 | 결정 | 근거 | 대안과 기각 이유
 
 2026-07-21 | 프레임워크: Vite + SPA + FSD (Next.js 대신) | 로그인 뒤 내부 CRUD 대시보드라
@@ -28,7 +29,7 @@ exam_score 테이블 신규(academy_id RLS 동일 적용) — DB 재개 시 0001
 '학생에 과목 리스트 별도 보유' 기각(시간표와 이중 관리). Student.subject → subjects(읽기모델은 시간표
 파생), 등록 폼에서 과목 제거. modeling-checklist에 항목9(카디널리티) 추가 — 이번에 드러난 사각지대.
 
-2026-07-23 | 간격(spacing) 정책: **공통 레이아웃은 spacing 토큰(--space-*), 일회성은 짝수 px 허용(홀수 금지)** |
+2026-07-23 | 간격(spacing) 정책: **공통 레이아웃은 spacing 토큰(--space-\*), 일회성은 짝수 px 허용(홀수 금지)** |
 규칙은 "간격도 토큰"인데 tokens.css엔 spacing 토큰이 없어 리뷰어가 3회 반복 플래그(규칙↔현실 모순) |
 대안 '전부 토큰 강제' 기각(이 규모에 과함)·'전부 px 허용' 기각(들쭉날쭉 허용). ui-layers.md·design-rules.md·tokens.css
 문구 정합화. 짝수 강제는 게이트로 승격 예정(제안됨 — gates/ 보호라 사용자 반영). 홀수 1건(btn-ghost--sm 5px→6px) 수정.
@@ -77,8 +78,7 @@ after_shadow=위조값). 0004 적용 후 재실증 exploited=false + A1~A8 회�
 
 2026-07-25 | subject(과목)를 자체 테이블·엔티티로 승격 — 학원별 CRUD, Supabase 영구 저장(마이그레이션 0005) |
 과목 관리 페이지가 하드코딩 상수(SUBJECTS)만 표시해 추가·삭제가 저장 안 됨(사용자 보고). model.ts의 "데이터 계층
-재개 시 코드/엔티티화 검토" 플래그를 이 시점에 해소. 격리는 0001 패턴 재사용: academy_id 기본값 current_academy_id()
-+ RLS subject_all(WITH CHECK). schedule/evaluation의 subject는 여전히 자유 문자열(FK 없음) — 과목 삭제는 목록에서만
+재개 시 코드/엔티티화 검토" 플래그를 이 시점에 해소. 격리는 0001 패턴 재사용: academy_id 기본값 current_academy_id() + RLS subject_all(WITH CHECK). schedule/evaluation의 subject는 여전히 자유 문자열(FK 없음) — 과목 삭제는 목록에서만
 제거, 기존 기록 문자열 유지 | 4개 페이지(subjects·schedule/evaluation/score 폼)가 listSubjects로 단일 출처 참조.
 기존 학원엔 현행 6개 기본 과목 시드, 신규 학원은 빈 상태로 시작(각자 큐레이션). 첫 실제 엔티티 CRUD.
 
@@ -98,7 +98,7 @@ score/:examId/edit) → 위젯 editHref→editHrefFor(id). 마이그레이션은
 단일 앱 배포엔 모노레포 Root Directory 조정보다 독립 레포가 단순. 킷 게이트·훅은 파일편집 기준이라 wama에 계속 적용됨(바깥 git 추적만 분리) |
 독립 레포는 앱=루트 → **Vercel Root Directory를 비워야 함**(projects/wama로 두면 package.json 못찾아 빌드 실패, "3 files"·ENOENT).
 supabase/ SQL은 wama 레포에서 gitignore(로컬전용). 환경변수 파일은 gitignore라 Git빌드 시 Vercel에 VITE_SUPABASE_URL/ANON_KEY 등록 필요.
-tsconfig baseUrl는 TS5.9에서 폐기 에러 → 제거(paths만으로 @/* 해석). 앞으로 git -C projects/wama push → 자동배포.
+tsconfig baseUrl는 TS5.9에서 폐기 에러 → 제거(paths만으로 @/\* 해석). 앞으로 git -C projects/wama push → 자동배포.
 
 2026-07-28 | 봇/크롤 차단 = robots.txt + noindex + Vercel Bot Protection(Challenge); SSO Deployment Protection은 데모 부적합 |
 데모 링크는 사람은 보고 봇은 막아야 함. Bot Protection Challenge는 브라우저 자동통과·비브라우저 챌린지(관람자 편의 유지) |

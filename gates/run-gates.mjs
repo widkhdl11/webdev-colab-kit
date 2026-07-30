@@ -115,7 +115,7 @@ for (const projDir of projectDirs) {
 // 1') 디자인 국면 강제 (아티팩트 의존): UI 레이어(pages/widgets) 작업은
 //     그 프로젝트의 승인된 design-rules.md(status: approved)를 선행해야 한다.
 //     - 트리거: projects/<이름>/src/{pages,widgets} 에 파일이 생김 = 화면 작업 시작
-//     - 선행 X: projects/<이름>/design-rules.md 존재 + status: approved
+//     - 선행 X: projects/<이름>/docs/design/design-rules.md 존재 + status: approved
 //     app/main.ts(부트스트랩)·shared/ui/tokens.css(디자인 산출물)는 트리거 아님 → 안 막음.
 //     UI 파일이 없으면 조용히 통과(루프 없음). --quick 에서도 돌아 편집 즉시 차단.
 function firstUiFile(projDir) {
@@ -126,13 +126,15 @@ function firstUiFile(projDir) {
   return null;
 }
 function designApproved(projDir) {
-  const p = join(projDir, "design-rules.md");
+  // const p = join(projDir, "design-rules.md");
+  const p = join(projDir, "docs", "design", "design-rules.md");
   return existsSync(p) && /^---[\s\S]*?status:\s*approved[\s\S]*?---/.test(readFileSync(p, "utf-8"));
 }
 for (const projDir of projectDirs) {
   const ev = firstUiFile(projDir);
   if (ev && !designApproved(projDir)) {
-    const drPath = relative(ROOT, join(projDir, "design-rules.md"));
+    // const drPath = relative(ROOT, join(proㅇjDir, "design-rules.md"));
+    const drPath = relative(ROOT, join(projDir, "docs", "design", "design-rules.md"));
     errors.push(`[design/BEFORE_UI] ${ev} — UI 레이어 작업이 시작됐는데 ${drPath} 가 없거나 status: approved 아님. `
       + `UI 구현 전 디자인 국면(design-interview→시안→checkpoint→design-rules 승인) 필요.`);
   }

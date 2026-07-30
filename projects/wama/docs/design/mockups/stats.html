@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>wama · 성적 통계</title>
+
+<!--
+  화면: 성적 통계 (로그인 후, 데스크톱 우선) — 새 시각 표면(dataviz)
+  ── 개편 근거(코디네이터 요구 변경): 탭 3종 + 드릴다운 ──
+    · CSS-only radio+:checked 탭 [전체 통계 | 과목별 통계 | 학년별 통계] (JS 없음). 상단 공유 컨트롤 바 없음(꺾은선이 시간순으로 여러 학기를 보여줌).
+    · 탭① 전체 통계: 요약 카드 3장 + 전체 평균 추이(꺾은선, 포인트 클릭→드릴다운) + 학생 평균 점수 순위표(과목 컬럼 없음 — 학생이 여러 과목 수강 1:N)
+    · 탭② 과목별 통계: 과목 select + 과목별 점수 변화(꺾은선)
+    · 탭③ 학년별 통계: 학년별 평균(막대, 막대 클릭 어포던스)
+  근거: projects/wama/design-rules.md(승인 시각 언어) + tokens.css 값
+    - 틸 단일 강조(#0D9488 / #0F766E) · 8px 라운드 · Pretendard · 얇은 그림자
+    - 카드/표/툴바/탭 세그먼트 언어 재사용 · 중앙 정렬 max-width 1120px · --space-* / 짝수 px · tabular-nums · 본문 16px
+  dataviz 규약(design-rules 위 확장):
+    - 데이터 마크 = 틸 단일 실선(--brand / --brand-strong). 단일 계열 하나만(작년 점선/범례 없음).
+    - 축·격자·눈금 = 회색 2계층(--line / #cbd5e1). 색만으로 정보 의존 금지 → 모든 포인트·막대에 값 라벨.
+    - 클릭 가능한 마크 = cursor:pointer + hover 강조 + role/aria-label. inline SVG viewBox 반응형(라이브러리·canvas 없음).
+  시간축(꺾은선): 단일 연속 5시점 — 25년 1학기 기말 → 25년 2학기 중간 → 25년 2학기 기말 → 26년 1학기 중간 → 26년 1학기 기말.
+    26년 7월 기준 아직 안 친 26년 2학기(중간·기말)는 축에서 제외(최신 = 26년 1학기 기말).
+  주: 정적 시안. JS·API·실제 계산 없음. 데이터는 한글 더미 하드코딩.
+      전체 통계 탭에서 최신 포인트(2026 1학기 기말)가 "선택됨" 상태로 드릴다운을 대표 표시.
+-->
+
+<!-- Pretendard (한글 가독성 — design-rules 폰트 규약). 폰트 스타일시트로 차트 라이브러리 아님. -->
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+<style>
+  /* ===== 토큰 (projects/wama/src/shared/ui/tokens.css 동기화 — 인라인 반영) ===== */
+  :root {
+    --brand: #0d9488;
+    --brand-hover: #0b8177;
+    --brand-strong: #0f766e;
+    --brand-strong-hover: #115e59;
+    --brand-soft: #f0fdfa;
+    --brand-border: #99f6e4;
+    --on-brand: #ffffff;
+
+    --bg-page: #f8fafc;
+    --bg-surface: #ffffff;
+    --ink: #1e293b;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --axis: #cbd5e1;
+
+    --status-wait-bg: #f1f5f9;
+    --status-wait-fg: #475569;
+
+    --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+    --space-5: 20px; --space-6: 24px; --space-8: 32px;
+
+    --radius: 8px;
+    --shadow-thin: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+    --maxw: 1120px;
+    --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg-page);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .tnum { font-variant-numeric: tabular-nums; }
+  a { color: inherit; }
+
+  a:focus-visible, button:focus-visible, select:focus-visible, input:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* ===== 헤더 (student-list 재사용) ===== */
+  .app-header {
+    position: sticky; top: 0; z-index: 20;
+    border-bottom: 1px solid var(--line);
+    background: rgba(255,255,255,.95);
+    backdrop-filter: blur(6px);
+  }
+  .header-inner {
+    max-width: var(--maxw); margin: 0 auto;
+    height: 64px; padding: 0 var(--space-6);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .brand-link { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); }
+  .logo-mark {
+    width: 32px; height: 32px; border-radius: var(--radius);
+    background: var(--brand); color: #fff; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .brand-name { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
+  .account {
+    display: flex; align-items: center; gap: 10px;
+    border: 0; background: none; cursor: pointer;
+    padding: 6px 8px; border-radius: var(--radius);
+  }
+  .account:hover { background: #f8fafc; }
+  .account .name { font-size: 14px; font-weight: 500; line-height: 1.2; }
+  .account .role { font-size: 12px; color: var(--muted); line-height: 1.2; }
+  .avatar {
+    width: 36px; height: 36px; border-radius: 999px;
+    background: var(--brand-soft); color: var(--brand-strong); font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 0 0 1px var(--brand-border);
+  }
+
+  /* ===== 레이아웃 ===== */
+  main { max-width: var(--maxw); margin: 0 auto; padding: var(--space-8) var(--space-6); }
+  .page-head { margin-bottom: var(--space-5); }
+  .page-head h1 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+  .page-head p { margin: var(--space-1) 0 0; font-size: 14px; color: var(--muted); }
+
+  /* ===== 폼 필드 (과목별 탭의 과목 select 등) ===== */
+  .field { display: inline-flex; flex-direction: column; gap: var(--space-1); }
+  .field > span { font-size: 12px; color: var(--muted); font-weight: 500; padding-left: 2px; }
+  select {
+    font: inherit; font-size: 15px; color: var(--ink);
+    background: var(--bg-surface); border: 1px solid var(--line);
+    border-radius: var(--radius); padding: 8px 32px 8px 12px;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center; background-size: 16px;
+  }
+  select:focus { border-color: var(--brand); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 15%, transparent); }
+
+  /* ===== 카드 ===== */
+  .card {
+    background: var(--bg-surface); border: 1px solid var(--line);
+    border-radius: var(--radius); box-shadow: var(--shadow-thin);
+  }
+
+  /* ===== 탭 (CSS-only radio + :checked 전환, JS 없음) ===== */
+  .tab-radio { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; clip: rect(0,0,0,0); }
+  .tabbar {
+    display: inline-flex; gap: var(--space-1);
+    background: #f1f5f9; padding: var(--space-1); border-radius: var(--radius);
+    margin-bottom: var(--space-6);
+  }
+  .tab {
+    padding: 8px 18px; border-radius: 6px;
+    font-size: 15px; font-weight: 500; color: var(--muted);
+    cursor: pointer; user-select: none; white-space: nowrap;
+    transition: color .12s, background .12s;
+  }
+  .tab:hover { color: var(--ink); }
+  /* 활성 탭: 흰 배경 부양 + brand-strong 텍스트 (인증 세그먼트 언어 재사용) */
+  #tab-all:checked ~ .tabbar label[for="tab-all"],
+  #tab-subject:checked ~ .tabbar label[for="tab-subject"],
+  #tab-grade:checked ~ .tabbar label[for="tab-grade"] {
+    background: var(--bg-surface); box-shadow: var(--shadow-thin);
+    color: var(--brand-strong); font-weight: 600;
+  }
+  /* 포커스 링 유지 (제거 금지) — 라디오 포커스 시 해당 탭 라벨에 링 */
+  #tab-all:focus-visible ~ .tabbar label[for="tab-all"],
+  #tab-subject:focus-visible ~ .tabbar label[for="tab-subject"],
+  #tab-grade:focus-visible ~ .tabbar label[for="tab-grade"] {
+    outline: 2px solid var(--brand); outline-offset: 2px;
+  }
+  /* 패널 전환 */
+  .panel { display: none; }
+  #tab-all:checked ~ .panel-all,
+  #tab-subject:checked ~ .panel-subject,
+  #tab-grade:checked ~ .panel-grade { display: block; }
+
+  /* ===== 요약 지표 3장 ===== */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); margin-bottom: var(--space-6); }
+  .stat { padding: var(--space-4); }
+  .stat .label { display: flex; align-items: center; gap: var(--space-2); color: var(--muted); font-size: 14px; }
+  .stat .label svg { width: 16px; height: 16px; }
+  .stat .value { margin-top: var(--space-2); display: flex; align-items: flex-end; gap: 6px; }
+  .stat .value .num { font-size: 30px; font-weight: 700; line-height: 1; }
+  .stat .value .unit { font-size: 14px; color: var(--muted); margin-bottom: 2px; }
+  .stat .sub { margin-top: 6px; font-size: 12px; color: var(--muted); }
+  .subject-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--brand-soft); color: var(--brand-strong);
+    box-shadow: inset 0 0 0 1px var(--brand-border);
+    border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 600;
+  }
+
+  /* ===== 차트 섹션 ===== */
+  .chart-card { padding: var(--space-5); margin-bottom: var(--space-6); }
+  .chart-head {
+    display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+    gap: var(--space-3); margin-bottom: var(--space-3);
+  }
+  .chart-head h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .chart-head p { margin: 4px 0 0; font-size: 13px; color: var(--muted); max-width: 640px; }
+  .chart svg { display: block; width: 100%; height: auto; }
+
+  /* SVG 클래스 (틸=강조, 회색=축/격자) — 단일 틸 곡선 + area 그라데이션 */
+  .grid-line { stroke: var(--line); stroke-width: 1; }
+  .axis-line { stroke: var(--axis); stroke-width: 1; }
+  .axis-label { fill: var(--muted); font-size: 12px; font-family: var(--font-sans); }
+  .axis-year { fill: var(--muted); font-size: 11px; font-family: var(--font-sans); }
+  .axis-title { fill: var(--muted); font-size: 12px; font-weight: 600; font-family: var(--font-sans); }
+  .val-label { fill: var(--brand-strong); font-size: 12px; font-weight: 700; font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+  .val-num { fill: var(--brand-strong); font-size: 11px; font-weight: 600; font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+
+  .area { stroke: none; }
+  .data-line { fill: none; stroke: var(--brand); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+  .data-point-ring { fill: #fff; stroke: var(--brand); stroke-width: 2; }
+  .bar { fill: var(--brand); transition: fill .12s; }
+
+  /* 클릭 가능한 마크 어포던스 */
+  a.mark { cursor: pointer; }
+  a.mark .mark-hit { fill: var(--brand); opacity: 0; transition: opacity .12s; }
+  a.mark:hover .mark-hit,
+  a.mark:focus-visible .mark-hit { opacity: .14; }
+  a.mark:focus-visible { outline: none; }
+  a.mark:hover .data-point-ring { stroke-width: 3; }
+  a.bar-link { cursor: pointer; }
+  a.bar-link:hover .bar,
+  a.bar-link:focus-visible .bar { fill: var(--brand-hover); }
+  /* 선택됨(대표 표시) 후광 */
+  .sel-halo { fill: var(--brand); opacity: .16; }
+  .data-point-selected { fill: var(--brand-strong); stroke: #fff; stroke-width: 2; }
+
+  /* ===== 드릴다운 / 표 (student-list 표 언어 재사용) ===== */
+  .drill { margin: var(--space-4) 0 0; border-top: 1px dashed var(--line); padding-top: var(--space-4); }
+  .drill-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); margin-bottom: var(--space-3); }
+  .drill-meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+  /* 드릴다운 페이지 네비 (student-list .pagination 언어 재사용) */
+  .pagination { display: flex; align-items: center; gap: var(--space-2); }
+  .pagination .page-count { font-size: 13px; color: var(--muted); }
+  .pagination .page-btn {
+    font: inherit; font-size: 14px; color: var(--ink);
+    background: var(--bg-surface); border: 1px solid var(--line);
+    border-radius: 6px; padding: 6px 12px; cursor: pointer;
+  }
+  .pagination .page-btn:hover { background: #f1f5f9; }
+  .pagination .page-btn:disabled { color: #94a3b8; cursor: default; background: var(--bg-surface); }
+  .drill-head .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--brand-soft); color: var(--brand-strong);
+    box-shadow: inset 0 0 0 1px var(--brand-border);
+    border-radius: 999px; padding: 3px 10px; font-size: 12px; font-weight: 600;
+  }
+  .drill-head .drill-title { font-size: 15px; font-weight: 600; }
+  .drill-head .drill-sub { font-size: 13px; color: var(--muted); }
+
+  .table-card { overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; text-align: left; }
+  thead tr { border-bottom: 1px solid var(--line); background: #f8fafc; }
+  th {
+    padding: 12px 20px; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .03em; color: var(--muted);
+  }
+  td { padding: 12px 20px; font-size: 15px; border-bottom: 1px solid var(--line); }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr.rowlink { cursor: pointer; }
+  tbody tr.rowlink:hover { background: color-mix(in srgb, var(--brand-soft) 60%, transparent); }
+  tbody tr.rowlink:hover .name-link { color: var(--brand-strong); text-decoration: underline; }
+  .name-link { font-weight: 500; color: var(--ink); text-decoration: none; }
+  .rank-cell { color: var(--muted); font-weight: 600; width: 56px; }
+  .num-cell { text-align: right; }
+  .score-cell { text-align: right; font-weight: 700; color: var(--brand-strong); }
+
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+  }
+</style>
+</head>
+
+<body>
+
+  <!-- ===== 상단 헤더 ===== -->
+  <header class="app-header">
+    <div class="header-inner">
+      <a href="#" class="brand-link" aria-label="온마음수학학원 홈">
+        <span class="logo-mark">온</span>
+        <span class="brand-name">온마음수학학원</span>
+      </a>
+      <button class="account" aria-haspopup="menu">
+        <span style="text-align:right;">
+          <span class="name" style="display:block;">김지현 선생님</span>
+          <span class="role" style="display:block;">담임 · 중등부</span>
+        </span>
+        <span class="avatar">김</span>
+        <svg width="16" height="16" viewBox="0 0 20 20" fill="#64748b" aria-hidden="true">
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0L5.21 8.27a.75.75 0 01.02-1.06z" clip-rule="evenodd"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- 페이지 타이틀 -->
+    <div class="page-head">
+      <h1>성적 통계</h1>
+      <p>전체 평균 추이 · 과목별 변화 · 학년별 평균을 한 페이지에서 살펴보고, 포인트를 눌러 학생 순위로 파고드세요.</p>
+    </div>
+
+    <!-- ===== 탭 (CSS-only radio + :checked 전환, JS 없음) ===== -->
+    <input type="radio" name="stats-tab" id="tab-all" class="tab-radio" checked />
+    <input type="radio" name="stats-tab" id="tab-subject" class="tab-radio" />
+    <input type="radio" name="stats-tab" id="tab-grade" class="tab-radio" />
+
+    <div class="tabbar" role="tablist" aria-label="통계 보기 전환">
+      <label class="tab" for="tab-all" role="tab">전체 통계</label>
+      <label class="tab" for="tab-subject" role="tab">과목별 통계</label>
+      <label class="tab" for="tab-grade" role="tab">학년별 통계</label>
+    </div>
+
+    <!-- ===== 탭① 전체 통계 (기본 활성): 요약 카드 + 전체 평균 추이 + 드릴다운 ===== -->
+    <div class="panel panel-all" role="tabpanel" aria-label="전체 통계">
+
+    <!-- ===== 요약 지표 3장 ===== -->
+    <section class="stats" aria-label="요약 지표">
+      <div class="card stat">
+        <div class="label">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M15.5 2.75a.75.75 0 01.75.75v13a.75.75 0 01-1.5 0v-13a.75.75 0 01.75-.75zM9.5 7a.75.75 0 01.75.75v8.75a.75.75 0 01-1.5 0V7.75A.75.75 0 019.5 7zM3.5 11a.75.75 0 01.75.75v4.75a.75.75 0 01-1.5 0v-4.75A.75.75 0 013.5 11z" clip-rule="evenodd"/></svg>
+          <span>전체 평균 점수</span>
+        </div>
+        <div class="value"><span class="num tnum">79.3</span><span class="unit">점</span></div>
+        <div class="sub">작년 동일 시기 대비 +6.1점</div>
+      </div>
+
+      <div class="card stat">
+        <div class="label">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M10 9a3 3 0 100-6 3 3 0 000 6zM3 18a7 7 0 0114 0H3z"/></svg>
+          <span>응시 학생 수</span>
+        </div>
+        <div class="value"><span class="num tnum">42</span><span class="unit">/ 48명</span></div>
+        <div class="sub">2026 1학기 중간고사 기준</div>
+      </div>
+
+      <div class="card stat">
+        <div class="label">
+          <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M11 3a1 1 0 10-2 0v1H6a2 2 0 00-2 2v1a4 4 0 003.09 3.9A4.01 4.01 0 009 12.9V15H7a1 1 0 100 2h6a1 1 0 100-2h-2v-2.1a4.01 4.01 0 001.91-1A4 4 0 0016 7V6a2 2 0 00-2-2h-3V3z"/></svg>
+          <span>최고 평균 과목</span>
+        </div>
+        <div class="value" style="margin-top:10px;">
+          <span class="subject-pill">초등 수학</span>
+          <span class="tnum" style="font-size:20px;font-weight:700;color:var(--ink);">88점</span>
+        </div>
+        <div class="sub">응시 21명 · 최고 100점</div>
+      </div>
+    </section>
+
+    <!-- ===== 섹션 ① 전체 학생 평균 점수 추이 (꺾은선 + 드릴다운) ===== -->
+    <section class="card chart-card" aria-labelledby="sec1-title">
+      <div class="chart-head">
+        <div>
+          <h2 id="sec1-title">전체 학생 평균 점수 추이</h2>
+          <p>학기별 전체 응시생 평균 점수 (0–100점) · 포인트를 누르면 해당 시험의 학생 순위가 아래에 열립니다.</p>
+        </div>
+      </div>
+
+      <div class="chart">
+        <svg viewBox="0 0 960 360" role="img"
+             aria-label="전체 학생 평균 점수 추이 곡선(최근 2년, 9시점). 24년 1학기 기말 66점, 24년 2학기 중간 68점, 24년 2학기 기말 67점, 25년 1학기 중간 70점, 25년 1학기 기말 71점, 25년 2학기 중간 74점, 25년 2학기 기말 78점, 26년 1학기 중간 80점, 26년 1학기 기말 83점으로 완만히 상승. 각 포인트 클릭 가능.">
+          <defs>
+            <linearGradient id="areaAll" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#0d9488" stop-opacity="0.16"/>
+              <stop offset="1" stop-color="#0d9488" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+
+          <!-- 격자 + Y눈금 (y=304:0 238:25 172:50 106:75 40:100) -->
+          <line class="grid-line" x1="64" y1="304" x2="932" y2="304"/>
+          <line class="grid-line" x1="64" y1="238" x2="932" y2="238"/>
+          <line class="grid-line" x1="64" y1="172" x2="932" y2="172"/>
+          <line class="grid-line" x1="64" y1="106" x2="932" y2="106"/>
+          <line class="grid-line" x1="64" y1="40"  x2="932" y2="40"/>
+          <text class="axis-label" x="54" y="308" text-anchor="end">0</text>
+          <text class="axis-label" x="54" y="242" text-anchor="end">25</text>
+          <text class="axis-label" x="54" y="176" text-anchor="end">50</text>
+          <text class="axis-label" x="54" y="110" text-anchor="end">75</text>
+          <text class="axis-label" x="54" y="44"  text-anchor="end">100</text>
+          <line class="axis-line" x1="64" y1="40" x2="64" y2="304"/>
+          <line class="axis-line" x1="64" y1="304" x2="932" y2="304"/>
+
+          <!-- area 그라데이션 (틸 → 투명) -->
+          <path class="area" fill="url(#areaAll)" d="M108,130 C124,129 172,125 204,124 C236,124 268,128 300,127 C332,126 364,121 396,119 C428,117 460,119 492,117 C524,115 556,112 588,109 C620,106 652,101 684,98 C716,95 748,95 780,93 C812,91 860,86 876,85 L876,304 L108,304 Z"/>
+
+          <!-- 단일 틸 부드러운 곡선 (24년 1학기 기말 → 26년 1학기 기말, 9시점) -->
+          <path class="data-line" d="M108,130 C124,129 172,125 204,124 C236,124 268,128 300,127 C332,126 364,121 396,119 C428,117 460,119 492,117 C524,115 556,112 588,109 C620,106 652,101 684,98 C716,95 748,95 780,93 C812,91 860,86 876,85"/>
+
+          <!-- 선택됨: 최신 26년 1학기 기말 (드릴다운 대표) -->
+          <circle class="sel-halo" cx="876" cy="85" r="11"/>
+
+          <!-- 클릭 가능한 포인트 (마커 크기 통일 r=4.5, 값 라벨 컴팩트) -->
+          <a class="mark" href="#drilldown" aria-label="2024 1학기 기말고사 전체 평균 66점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="108" cy="130" r="16"/>
+            <circle class="data-point-ring" cx="108" cy="130" r="4.5"/>
+            <text class="val-num" x="108" y="117" text-anchor="middle">66</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="2024 2학기 중간고사 전체 평균 68점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="204" cy="124" r="16"/>
+            <circle class="data-point-ring" cx="204" cy="124" r="4.5"/>
+            <text class="val-num" x="204" y="111" text-anchor="middle">68</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="2024 2학기 기말고사 전체 평균 67점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="300" cy="127" r="16"/>
+            <circle class="data-point-ring" cx="300" cy="127" r="4.5"/>
+            <text class="val-num" x="300" y="114" text-anchor="middle">67</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="2025 1학기 중간고사 전체 평균 70점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="396" cy="119" r="16"/>
+            <circle class="data-point-ring" cx="396" cy="119" r="4.5"/>
+            <text class="val-num" x="396" y="106" text-anchor="middle">70</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="2025 1학기 기말고사 전체 평균 71점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="492" cy="117" r="16"/>
+            <circle class="data-point-ring" cx="492" cy="117" r="4.5"/>
+            <text class="val-num" x="492" y="104" text-anchor="middle">71</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="2025 2학기 중간고사 전체 평균 74점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="588" cy="109" r="16"/>
+            <circle class="data-point-ring" cx="588" cy="109" r="4.5"/>
+            <text class="val-num" x="588" y="96" text-anchor="middle">74</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="2025 2학기 기말고사 전체 평균 78점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="684" cy="98" r="16"/>
+            <circle class="data-point-ring" cx="684" cy="98" r="4.5"/>
+            <text class="val-num" x="684" y="85" text-anchor="middle">78</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="2026 1학기 중간고사 전체 평균 80점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="780" cy="93" r="16"/>
+            <circle class="data-point-ring" cx="780" cy="93" r="4.5"/>
+            <text class="val-num" x="780" y="80" text-anchor="middle">80</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="2026 1학기 기말고사 전체 평균 83점 · 선택됨. 학생 순위 보기">
+            <circle class="mark-hit" cx="876" cy="85" r="16"/>
+            <circle class="data-point-selected" cx="876" cy="85" r="5.5"/>
+            <text class="val-label" x="876" y="71" text-anchor="middle">83</text>
+          </a>
+
+          <!-- X 라벨 (2줄: 학기·시기 / 연도) -->
+          <text class="axis-label" x="108" y="326" text-anchor="middle">1학기 기말</text>
+          <text class="axis-year"  x="108" y="341" text-anchor="middle">'24</text>
+          <text class="axis-label" x="204" y="326" text-anchor="middle">2학기 중간</text>
+          <text class="axis-year"  x="204" y="341" text-anchor="middle">'24</text>
+          <text class="axis-label" x="300" y="326" text-anchor="middle">2학기 기말</text>
+          <text class="axis-year"  x="300" y="341" text-anchor="middle">'24</text>
+          <text class="axis-label" x="396" y="326" text-anchor="middle">1학기 중간</text>
+          <text class="axis-year"  x="396" y="341" text-anchor="middle">'25</text>
+          <text class="axis-label" x="492" y="326" text-anchor="middle">1학기 기말</text>
+          <text class="axis-year"  x="492" y="341" text-anchor="middle">'25</text>
+          <text class="axis-label" x="588" y="326" text-anchor="middle">2학기 중간</text>
+          <text class="axis-year"  x="588" y="341" text-anchor="middle">'25</text>
+          <text class="axis-label" x="684" y="326" text-anchor="middle">2학기 기말</text>
+          <text class="axis-year"  x="684" y="341" text-anchor="middle">'25</text>
+          <text class="axis-label" x="780" y="326" text-anchor="middle">1학기 중간</text>
+          <text class="axis-year"  x="780" y="341" text-anchor="middle">'26</text>
+          <text class="axis-label" x="876" y="326" text-anchor="middle">1학기 기말</text>
+          <text class="axis-year"  x="876" y="341" text-anchor="middle">'26</text>
+          <text class="axis-title" x="16" y="172" text-anchor="middle" transform="rotate(-90 16 172)">평균 점수</text>
+        </svg>
+      </div>
+
+      <!-- 드릴다운: 선택된 포인트의 학생 순위 (표 언어 재사용) -->
+      <div class="drill" id="drilldown">
+        <div class="drill-head">
+          <div class="drill-meta">
+            <span class="tag">선택된 시험</span>
+            <span class="drill-title">2026 1학기 기말고사</span>
+            <span class="drill-sub">· 학생 평균 점수 내림차순</span>
+          </div>
+          <nav class="pagination" aria-label="학생 순위 페이지 이동">
+            <span class="page-count tnum">1–8 / 42명</span>
+            <button class="page-btn" aria-label="이전 페이지" disabled>이전</button>
+            <button class="page-btn" aria-label="다음 페이지">다음</button>
+          </nav>
+        </div>
+        <div class="table-card card" style="box-shadow:none;">
+          <table>
+            <caption class="sr-only">2026 1학기 기말고사 학생 평균 점수 순위. 순위, 이름, 학년, 평균 점수. 학생별 평균 점수 내림차순. 행을 누르면 학생 상세로 이동합니다.</caption>
+            <thead>
+              <tr>
+                <th scope="col">순위</th>
+                <th scope="col">이름</th>
+                <th scope="col">학년</th>
+                <th scope="col" class="num-cell">평균 점수</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="rowlink">
+                <td class="rank-cell tnum">1</td>
+                <td><a class="name-link" href="#/students/s01">이서연</a></td>
+                <td class="tnum">고2</td>
+                <td class="score-cell tnum">98</td>
+              </tr>
+              <tr class="rowlink">
+                <td class="rank-cell tnum">2</td>
+                <td><a class="name-link" href="#/students/s02">강서준</a></td>
+                <td class="tnum">중3</td>
+                <td class="score-cell tnum">96</td>
+              </tr>
+              <tr class="rowlink">
+                <td class="rank-cell tnum">3</td>
+                <td><a class="name-link" href="#/students/s03">윤채원</a></td>
+                <td class="tnum">고1</td>
+                <td class="score-cell tnum">94</td>
+              </tr>
+              <tr class="rowlink">
+                <td class="rank-cell tnum">4</td>
+                <td><a class="name-link" href="#/students/s04">김하윤</a></td>
+                <td class="tnum">중2</td>
+                <td class="score-cell tnum">92</td>
+              </tr>
+              <tr class="rowlink">
+                <td class="rank-cell tnum">5</td>
+                <td><a class="name-link" href="#/students/s05">오지안</a></td>
+                <td class="tnum">고2</td>
+                <td class="score-cell tnum">90</td>
+              </tr>
+              <tr class="rowlink">
+                <td class="rank-cell tnum">6</td>
+                <td><a class="name-link" href="#/students/s06">정우진</a></td>
+                <td class="tnum">중3</td>
+                <td class="score-cell tnum">88</td>
+              </tr>
+              <tr class="rowlink">
+                <td class="rank-cell tnum">7</td>
+                <td><a class="name-link" href="#/students/s07">박도윤</a></td>
+                <td class="tnum">고1</td>
+                <td class="score-cell tnum">85</td>
+              </tr>
+              <tr class="rowlink">
+                <td class="rank-cell tnum">8</td>
+                <td><a class="name-link" href="#/students/s08">한지호</a></td>
+                <td class="tnum">중1</td>
+                <td class="score-cell tnum">83</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    </div><!-- /panel-all -->
+
+    <!-- ===== 탭② 과목별 통계: 과목 select + 과목별 점수 변화 ===== -->
+    <div class="panel panel-subject" role="tabpanel" aria-label="과목별 통계">
+
+    <!-- ===== 섹션 ② 과목별 점수 변화 (꺾은선 + 과목 select) ===== -->
+    <section class="card chart-card" aria-labelledby="sec2-title">
+      <div class="chart-head">
+        <div>
+          <h2 id="sec2-title">과목별 점수 변화</h2>
+          <p>선택 과목의 학기별 평균 추이 (0–100점) · 포인트를 누르면 학생 순위가 위 ①에 열립니다.</p>
+        </div>
+        <label class="field">
+          <span>과목</span>
+          <select aria-label="과목 선택">
+            <option>수학(공통)</option>
+            <option selected>미적분</option>
+            <option>확률과 통계</option>
+            <option>기하</option>
+            <option>심화 문제풀이</option>
+            <option>초등 수학</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="chart">
+        <svg viewBox="0 0 960 360" role="img"
+             aria-label="미적분 과목 평균 점수 추이 곡선(최근 2년, 9시점). 24년 1학기 기말 58점, 24년 2학기 중간 60점, 24년 2학기 기말 59점, 25년 1학기 중간 62점, 25년 1학기 기말 63점, 25년 2학기 중간 66점, 25년 2학기 기말 70점, 26년 1학기 중간 72점, 26년 1학기 기말 75점으로 완만히 상승.">
+          <defs>
+            <linearGradient id="areaSubj" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#0d9488" stop-opacity="0.16"/>
+              <stop offset="1" stop-color="#0d9488" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+
+          <line class="grid-line" x1="64" y1="304" x2="932" y2="304"/>
+          <line class="grid-line" x1="64" y1="238" x2="932" y2="238"/>
+          <line class="grid-line" x1="64" y1="172" x2="932" y2="172"/>
+          <line class="grid-line" x1="64" y1="106" x2="932" y2="106"/>
+          <line class="grid-line" x1="64" y1="40"  x2="932" y2="40"/>
+          <text class="axis-label" x="54" y="308" text-anchor="end">0</text>
+          <text class="axis-label" x="54" y="242" text-anchor="end">25</text>
+          <text class="axis-label" x="54" y="176" text-anchor="end">50</text>
+          <text class="axis-label" x="54" y="110" text-anchor="end">75</text>
+          <text class="axis-label" x="54" y="44"  text-anchor="end">100</text>
+          <line class="axis-line" x1="64" y1="40" x2="64" y2="304"/>
+          <line class="axis-line" x1="64" y1="304" x2="932" y2="304"/>
+
+          <!-- area 그라데이션 (틸 → 투명) -->
+          <path class="area" fill="url(#areaSubj)" d="M108,151 C124,150 172,147 204,146 C236,146 268,149 300,148 C332,147 364,142 396,140 C428,138 460,140 492,138 C524,136 556,133 588,130 C620,127 652,122 684,119 C716,116 748,116 780,114 C812,112 860,107 876,106 L876,304 L108,304 Z"/>
+
+          <!-- 단일 틸 부드러운 곡선 (24년 1학기 기말 → 26년 1학기 기말, 9시점) -->
+          <path class="data-line" d="M108,151 C124,150 172,147 204,146 C236,146 268,149 300,148 C332,147 364,142 396,140 C428,138 460,140 492,138 C524,136 556,133 588,130 C620,127 652,122 684,119 C716,116 748,116 780,114 C812,112 860,107 876,106"/>
+
+          <!-- 클릭 가능한 포인트 (마커 크기 통일 r=4.5) -->
+          <a class="mark" href="#drilldown" aria-label="미적분 2024 1학기 기말고사 평균 58점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="108" cy="151" r="16"/>
+            <circle class="data-point-ring" cx="108" cy="151" r="4.5"/>
+            <text class="val-num" x="108" y="138" text-anchor="middle">58</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="미적분 2024 2학기 중간고사 평균 60점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="204" cy="146" r="16"/>
+            <circle class="data-point-ring" cx="204" cy="146" r="4.5"/>
+            <text class="val-num" x="204" y="133" text-anchor="middle">60</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="미적분 2024 2학기 기말고사 평균 59점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="300" cy="148" r="16"/>
+            <circle class="data-point-ring" cx="300" cy="148" r="4.5"/>
+            <text class="val-num" x="300" y="135" text-anchor="middle">59</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="미적분 2025 1학기 중간고사 평균 62점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="396" cy="140" r="16"/>
+            <circle class="data-point-ring" cx="396" cy="140" r="4.5"/>
+            <text class="val-num" x="396" y="127" text-anchor="middle">62</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="미적분 2025 1학기 기말고사 평균 63점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="492" cy="138" r="16"/>
+            <circle class="data-point-ring" cx="492" cy="138" r="4.5"/>
+            <text class="val-num" x="492" y="125" text-anchor="middle">63</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="미적분 2025 2학기 중간고사 평균 66점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="588" cy="130" r="16"/>
+            <circle class="data-point-ring" cx="588" cy="130" r="4.5"/>
+            <text class="val-num" x="588" y="117" text-anchor="middle">66</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="미적분 2025 2학기 기말고사 평균 70점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="684" cy="119" r="16"/>
+            <circle class="data-point-ring" cx="684" cy="119" r="4.5"/>
+            <text class="val-num" x="684" y="106" text-anchor="middle">70</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="미적분 2026 1학기 중간고사 평균 72점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="780" cy="114" r="16"/>
+            <circle class="data-point-ring" cx="780" cy="114" r="4.5"/>
+            <text class="val-num" x="780" y="101" text-anchor="middle">72</text>
+          </a>
+          <a class="mark" href="#drilldown" aria-label="미적분 2026 1학기 기말고사 평균 75점 · 학생 순위 보기">
+            <circle class="mark-hit" cx="876" cy="106" r="16"/>
+            <circle class="data-point-ring" cx="876" cy="106" r="4.5"/>
+            <text class="val-num" x="876" y="93" text-anchor="middle">75</text>
+          </a>
+
+          <!-- X 라벨 (2줄: 학기·시기 / 연도) -->
+          <text class="axis-label" x="108" y="326" text-anchor="middle">1학기 기말</text>
+          <text class="axis-year"  x="108" y="341" text-anchor="middle">'24</text>
+          <text class="axis-label" x="204" y="326" text-anchor="middle">2학기 중간</text>
+          <text class="axis-year"  x="204" y="341" text-anchor="middle">'24</text>
+          <text class="axis-label" x="300" y="326" text-anchor="middle">2학기 기말</text>
+          <text class="axis-year"  x="300" y="341" text-anchor="middle">'24</text>
+          <text class="axis-label" x="396" y="326" text-anchor="middle">1학기 중간</text>
+          <text class="axis-year"  x="396" y="341" text-anchor="middle">'25</text>
+          <text class="axis-label" x="492" y="326" text-anchor="middle">1학기 기말</text>
+          <text class="axis-year"  x="492" y="341" text-anchor="middle">'25</text>
+          <text class="axis-label" x="588" y="326" text-anchor="middle">2학기 중간</text>
+          <text class="axis-year"  x="588" y="341" text-anchor="middle">'25</text>
+          <text class="axis-label" x="684" y="326" text-anchor="middle">2학기 기말</text>
+          <text class="axis-year"  x="684" y="341" text-anchor="middle">'25</text>
+          <text class="axis-label" x="780" y="326" text-anchor="middle">1학기 중간</text>
+          <text class="axis-year"  x="780" y="341" text-anchor="middle">'26</text>
+          <text class="axis-label" x="876" y="326" text-anchor="middle">1학기 기말</text>
+          <text class="axis-year"  x="876" y="341" text-anchor="middle">'26</text>
+          <text class="axis-title" x="16" y="172" text-anchor="middle" transform="rotate(-90 16 172)">평균 점수</text>
+        </svg>
+      </div>
+    </section>
+
+    </div><!-- /panel-subject -->
+
+    <!-- ===== 탭③ 학년별 통계: 학년별 평균 막대 ===== -->
+    <div class="panel panel-grade" role="tabpanel" aria-label="학년별 통계">
+
+    <!-- ===== 섹션 ③ 학년별 평균 점수 (막대) ===== -->
+    <section class="card chart-card" aria-labelledby="sec3-title">
+      <div class="chart-head">
+        <div>
+          <h2 id="sec3-title">학년별 평균 점수</h2>
+          <p>학년별 응시생 평균 점수 (0–100점) · 막대를 누르면 그 학년 학생 순위로 파고듭니다.</p>
+        </div>
+      </div>
+
+      <div class="chart">
+        <svg viewBox="0 0 960 360" role="img"
+             aria-label="학년별 평균 점수 막대. 초4 85점, 초5 88점, 중1 79점, 중2 76점, 중3 81점, 고1 73점, 고2 70점, 고3 68점. 각 막대 클릭 가능.">
+          <line class="grid-line" x1="64" y1="304" x2="932" y2="304"/>
+          <line class="grid-line" x1="64" y1="238" x2="932" y2="238"/>
+          <line class="grid-line" x1="64" y1="172" x2="932" y2="172"/>
+          <line class="grid-line" x1="64" y1="106" x2="932" y2="106"/>
+          <line class="grid-line" x1="64" y1="40"  x2="932" y2="40"/>
+          <text class="axis-label" x="54" y="308" text-anchor="end">0</text>
+          <text class="axis-label" x="54" y="242" text-anchor="end">25</text>
+          <text class="axis-label" x="54" y="176" text-anchor="end">50</text>
+          <text class="axis-label" x="54" y="110" text-anchor="end">75</text>
+          <text class="axis-label" x="54" y="44"  text-anchor="end">100</text>
+          <line class="axis-line" x1="64" y1="40" x2="64" y2="304"/>
+          <line class="axis-line" x1="64" y1="304" x2="932" y2="304"/>
+
+          <!-- 막대 (센터 118/226/334/442/550/658/766/874, 폭 56, rx 6) + 값 라벨 -->
+          <a class="bar-link" href="#drilldown" aria-label="초4 평균 85점 · 학생 순위 보기">
+            <rect class="bar" x="90"  y="80"  width="56" height="224" rx="6"/>
+            <text class="val-label" x="118" y="70" text-anchor="middle">85</text>
+          </a>
+          <a class="bar-link" href="#drilldown" aria-label="초5 평균 88점 · 학생 순위 보기">
+            <rect class="bar" x="198" y="72"  width="56" height="232" rx="6"/>
+            <text class="val-label" x="226" y="62" text-anchor="middle">88</text>
+          </a>
+          <a class="bar-link" href="#drilldown" aria-label="중1 평균 79점 · 학생 순위 보기">
+            <rect class="bar" x="306" y="95"  width="56" height="209" rx="6"/>
+            <text class="val-label" x="334" y="85" text-anchor="middle">79</text>
+          </a>
+          <a class="bar-link" href="#drilldown" aria-label="중2 평균 76점 · 학생 순위 보기">
+            <rect class="bar" x="414" y="103" width="56" height="201" rx="6"/>
+            <text class="val-label" x="442" y="93" text-anchor="middle">76</text>
+          </a>
+          <a class="bar-link" href="#drilldown" aria-label="중3 평균 81점 · 학생 순위 보기">
+            <rect class="bar" x="522" y="90"  width="56" height="214" rx="6"/>
+            <text class="val-label" x="550" y="80" text-anchor="middle">81</text>
+          </a>
+          <a class="bar-link" href="#drilldown" aria-label="고1 평균 73점 · 학생 순위 보기">
+            <rect class="bar" x="630" y="111" width="56" height="193" rx="6"/>
+            <text class="val-label" x="658" y="101" text-anchor="middle">73</text>
+          </a>
+          <a class="bar-link" href="#drilldown" aria-label="고2 평균 70점 · 학생 순위 보기">
+            <rect class="bar" x="738" y="119" width="56" height="185" rx="6"/>
+            <text class="val-label" x="766" y="109" text-anchor="middle">70</text>
+          </a>
+          <a class="bar-link" href="#drilldown" aria-label="고3 평균 68점 · 학생 순위 보기">
+            <rect class="bar" x="846" y="124" width="56" height="180" rx="6"/>
+            <text class="val-label" x="874" y="114" text-anchor="middle">68</text>
+          </a>
+
+          <text class="axis-label" x="118" y="326" text-anchor="middle">초4</text>
+          <text class="axis-label" x="226" y="326" text-anchor="middle">초5</text>
+          <text class="axis-label" x="334" y="326" text-anchor="middle">중1</text>
+          <text class="axis-label" x="442" y="326" text-anchor="middle">중2</text>
+          <text class="axis-label" x="550" y="326" text-anchor="middle">중3</text>
+          <text class="axis-label" x="658" y="326" text-anchor="middle">고1</text>
+          <text class="axis-label" x="766" y="326" text-anchor="middle">고2</text>
+          <text class="axis-label" x="874" y="326" text-anchor="middle">고3</text>
+          <text class="axis-title" x="498" y="348" text-anchor="middle">학년</text>
+          <text class="axis-title" x="16" y="172" text-anchor="middle" transform="rotate(-90 16 172)">평균 점수</text>
+        </svg>
+      </div>
+    </section>
+
+    </div><!-- /panel-grade -->
+
+  </main>
+</body>
+</html>

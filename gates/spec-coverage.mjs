@@ -1,12 +1,18 @@
 #!/usr/bin/env node
 // 추적성 게이트: approved 스펙의 모든 불변식(INV-*)은 최소 1개 테스트가 참조해야 한다
-// 스펙은 루트 docs/specs/ 에서 읽고, 테스트는 projects/*/src 와 projects/*/tests 에서 찾는다.
-import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
+// 스펙은 모든 projects/*/docs/specs 에서 읽고, 테스트는 projects/*/src 와 projects/*/tests 에서 찾는다.
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const ROOT = process.cwd();
-const SPECS = join(ROOT, "docs", "specs");
-if (!existsSync(SPECS)) process.exit(0);
+const PROJECTS = join(ROOT, "projects");
+// 모든 프로젝트의 docs/specs 를 스캔한다 (활성만이 아니라 전부 — 게이트는 저장소 전체의 약속을 지킨다).
+const specDirs = existsSync(PROJECTS)
+  ? readdirSync(PROJECTS)
+      .map((n) => join(PROJECTS, n, "docs", "specs"))
+      .filter((d) => { try { return statSync(d).isDirectory(); } catch { return false; } })
+  : [];
+if (specDirs.length === 0) process.exit(0);
 
 function walk(dir) {
   let out = [];
@@ -21,7 +27,7 @@ function walk(dir) {
 }
 
 const invToSpec = new Map();
-for (const f of walk(SPECS).filter((f) => f.endsWith(".md"))) {
+for (const f of specDirs.flatMap(walk).filter((f) => f.endsWith(".md"))) {
   const src = readFileSync(f, "utf-8");
   if (!/^---[\s\S]*?status:\s*approved[\s\S]*?---/.test(src)) continue;
   for (const m of src.matchAll(/\bINV-[A-Z0-9]+\b/g)) invToSpec.set(m[0], relative(ROOT, f));

@@ -43,8 +43,9 @@ for (const f of specDirs.flatMap(walk).filter((f) => f.endsWith(".md"))) {
   const actual = invariantHash(src);
   if (!stored) {
     sealErrors.push(`[spec-coverage/UNSEALED] ${rel} — 봉인 누락(inv_hash 없음). approved 스펙은 봉인 필요: node scripts/seal-spec.mjs ${rel}`);
-  } else if (actual && stored !== actual) {
-    sealErrors.push(`[spec-coverage/INV_TAMPERED] ${rel} — 불변식이 승인 없이 변경됨. status를 draft로 되돌려 재승인·재봉인(seal-spec) 하라.`);
+  } else if (stored !== actual) {
+    // actual 이 null(불변식 섹션 삭제·헤딩 변경)인 경우도 stored(해시)와 불일치 → 변조로 잡는다.
+    sealErrors.push(`[spec-coverage/INV_TAMPERED] ${rel} — 불변식이 승인 없이 변경됨(섹션 삭제 포함). status를 draft로 되돌려 재승인·재봉인(seal-spec) 하라.`);
   }
 
   for (const m of src.matchAll(/\bINV-[A-Z0-9]+\b/g)) invToSpec.set(m[0], rel);

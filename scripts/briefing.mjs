@@ -64,6 +64,24 @@ const total = done + (plan.match(/- \[ \]/g) ?? []).length;
 const backlog = read("docs/references/harness-backlog.md");
 const pendingUpgrades = (backlog.match(/^- \[ \]/gm) ?? []).length;
 
+// 5.6. wrap-up 누락 경보 — PROGRESS.md 를 마지막으로 바꾼 커밋 이후, 프로젝트 경로를 건드린 커밋이
+//   N개(기본 5) 이상이면 한 줄 경보. git 은 읽기 전용(log)만 — commit·reset·checkout 금지.
+//   감지=기계, 쓰기=wrap-up 원칙: 여기선 경보만, 문서는 쓰지 않는다. .git 없거나 git 실패 시 조용히 통과.
+const WRAPUP_ALERT_N = 5;
+let wrapupWarn = "";
+try {
+  if (existsSync(join(ROOT, ".git"))) {
+    const git = (args) => spawnSync("git", args, { cwd: ROOT, encoding: "utf-8" });
+    const last = git(["log", "-1", "--format=%H", "--", PROGRESS]);
+    const lastHash = last.status === 0 ? last.stdout.trim() : "";
+    if (lastHash) {
+      const since = git(["log", "--format=%H", `${lastHash}..HEAD`, "--", projectDir]);
+      const n = since.status === 0 ? since.stdout.split("\n").filter(Boolean).length : 0;
+      if (n >= WRAPUP_ALERT_N) wrapupWarn = `⚠ PROGRESS 갱신 이후 프로젝트 커밋 ${n}개 — wrap-up 누락?`;
+    }
+  }
+} catch { /* .git 없음·git 실패 시 조용히 통과 */ }
+
 console.log(`── 세션 브리핑 (${active}) ──`);
 console.log(`▣ 대기 중인 결정: ${pending.length > 0 ? pending.join(" / ") : "없음"}`);
 console.log(`● 게이트: ${gateLight}`);
@@ -72,3 +90,4 @@ console.log(`→ 다음 할 일: ${next}`);
 if (principleWarn) console.log(principleWarn);
 if (total > 0) console.log(`▤ 필수 기능 진행: ${done}/${total}`);
 if (pendingUpgrades > 0) console.log(`⚙ 보류된 하네스 승격: ${pendingUpgrades}건 (docs/references/harness-backlog.md)`);
+if (wrapupWarn) console.log(wrapupWarn);

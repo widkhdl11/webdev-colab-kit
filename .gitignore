@@ -6,3 +6,4 @@ devserver.log
 !.env.example
 # projects/
 supabase/**
+.claude/settings.local.json

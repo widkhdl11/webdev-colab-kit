@@ -1,20 +1,32 @@
 # PROGRESS.md
 
 ## 현재 상태 (wrap-up이 갱신 — 이 블록만 세션 시작 시 읽힘)
-- 오늘의 목표: "과목 저장 안 됨" 버그 출발 → 데이터 계층 전면 Supabase 전환 + 배포. **달성.**
-- 완료: subject·student·schedule·evaluation·exam 전 엔티티 Supabase CRUD + 4폼 저장(마이그 0005~0008 실DB, 통합테스트
-  17 green). Vercel 배포 = **독립 wama 레포(github widkhdl11/wama, supabase/ gitignore) → Git 자동배포 파이프라인**.
-  봇차단(robots.txt/noindex + Vercel Bot Protection=Challenge). 시크릿 잠금(SUPABASE_TOKEN: apply-migrations 하드닝·
-  protect-secrets 훅·유출無 확인). 버그수정 다수(시간표 과목드롭다운/요일묶음표시·학생삭제UI·평가=수강과목한정·
-  완료판정=수강전과목·tsconfig baseUrl폐기·세션기반 헤더). 리뷰어 3종 반영.
-- 멈춘 지점: 데이터 계층·배포·자동배포 완결. 미구현: **통계 페이지(pages/stats, 시안 승인됨)**. 정적 placeholder 잔존
-  (학생목록 검색·필터·페이지네이션, "다가오는 시험" 카드, 평가표 내보내기).
-- 다음 할 일: 통계 페이지 구현(승인 시안 stats.html → pages/stats: 3탭·꺾은선/막대·드릴다운).
-- 대기 중인 결정: 없음. (참고: 실배포 시 이메일확인 재활성 · schedule/evaluation student_id 학원검증 미적용(exam RPC만) ·
-  다음 프로젝트부터 Supabase 모던키)
+- 오늘의 목표: 성적 통계 페이지 구현. **달성.**
+- 완료: stats 스펙 approved+봉인(INV-ST1~ST4). **pages/stats 실동작** — entities/stats 집계(백분율 환산·학생 동등 가중·
+  미응시 제외·정기시험 시간축) + 3탭(전체/과목별/학년별) SVG 꺾은선·막대·드릴다운, 학원 격리=RLS(ST1). 유닛 29(stats 19)
+  +통합 ST1, 게이트(40파일)·vite build green. 리뷰어 3종+test-auditor 반영(subjectTrend 0위장 제거·repo 결측 NaN·로드실패
+  Result·집계 단일경로+중복행 방어·드릴다운 이름 링크·곡선/그라데이션). 커밋 2개(docs/feat) struc-change 푸시. 횡단 미결
+  (과목 분열·점수 단위) stats 몫 소진.
+- 멈춘 지점: 기능 완결. ST1 통합테스트는 라이브 Supabase 필요(test:integration, 이번 세션 미실행 — 작성·타입검사만 확인).
+- 다음 할 일: 월간 평가표 이미지/PDF 내보내기 — 먼저 평가표 문서 시안(디자인 국면), 그다음 pages 배선.
+- 대기 중인 결정: 없음. (남은 필수기능 스펙 evaluation·exam-score·schedule·student-registration·evaluation-export는 draft —
+  기능은 대부분 배선됨, 스펙 미승인. 실배포 시 이메일확인 재활성 · schedule/evaluation student_id 학원검증 미적용)
 
 ---
 ## 로그 (append-only — 필요할 때만 검색)
+
+### 2026-08-01 (성적 통계 페이지 — 스펙 → 구현 → 리뷰)
+- /spec stats(인터뷰로 결정, 봉인 INV-ST1~ST4): 전체 탭 그래프=정기(중간·기말)만, 평균=학생별 평균의 평균(학생 동등 가중),
+  점수=만점 대비 백분율 환산, 미응시=집계 제외(0 아님), 과목=저장 문자열 그대로(병합 안 함), 학년별=현재 학년 스냅샷, 격리=RLS.
+  모의=개인 그래프 보조선(추후)·비정기(학원)=별도 영역(추후)로 비범위. 시간축은 기존 입력폼 연도·학기 select("YYYY 학기" period)로
+  충분 → exam 스키마 무변경(초기 우려한 자유문자열 파싱 불필요 — 사용자 지적으로 정정).
+- 구현: entities/stats(model 순수 집계 = FSD 자족 슬라이스, 타 엔티티 import 없음 / repo RLS 조회, gradeOf는 페이지가 student
+  read-model에서 주입) · pages/stats(3탭·SVG 꺾은선/막대·드릴다운, shared에 svgEl 헬퍼) · 라우트 #/stats + 학생목록 네비 · tokens --radius-sm.
+- 리뷰어 4종 반영: repo 결측 NaN 보존(Number(null)=0 → ST4 우회 차단), subjectTrend 미실시 시점 0위장→점 생략, 로드실패 Result로
+  빈상태와 구분, 집계 단일 경로(academyAvgAtSite)로 통합 + 중복 학생행 방어 테스트(알리바이 제거), 드릴다운 이름 링크(키보드),
+  탭 대비·곡선+area 그라데이션·값 라벨 12px, ST1 통합테스트를 실제 getAcademyExams 경로로 구동 + 양성 단언. 유닛 13→19.
+- 횡단 미결: _cross-cutting.md에서 과목 분열·점수 단위(만점) stats 몫 소진(관련 목록에서 stats 제거, 다른 스펙 몫은 유지).
+- 검증: tsc·게이트(40파일)·유닛 29 green, vite build 성공. 커밋 2개(docs 스펙 / feat 구현) struc-change 푸시.
 
 ### 2026-07-28 (데이터 계층 전면 Supabase 전환 + 배포)
 - 출발: "과목 삭제/추가 저장 안 됨" 버그 → 조사 결과 앱 데이터 계층 대부분이 목업+저장없음이고 스키마가 도메인 모델과

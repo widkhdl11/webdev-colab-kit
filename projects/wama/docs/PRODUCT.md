@@ -21,7 +21,7 @@
 - [ ] 학생·과목별 월간 서술 평가 → docs/specs/evaluation.md
 - [ ] 월간 평가표 이미지/PDF 내보내기 → docs/specs/evaluation-export.md
 - [ ] 시험별 점수 입력 + 성적 이력 → docs/specs/exam-score.md
-- [ ] 과목별·시험별 성적 통계 → docs/specs/stats.md
+- [x] 과목별·시험별 성적 통계 → docs/specs/stats.md (approved)
 - [x] 학원 단위 데이터 격리 → docs/specs/auth-isolation.md (approved)
 
 ## 선택 기능

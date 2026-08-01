@@ -11,6 +11,7 @@ import { mountScheduleFormPage } from "@/pages/schedule-form/ui";
 import { mountAuthPage } from "@/pages/auth/ui";
 import { mountOnboardingPage } from "@/pages/onboarding/ui";
 import { mountSubjectsPage } from "@/pages/subjects/ui";
+import { mountStatsPage } from "@/pages/stats/ui";
 
 // 클라이언트 가드는 UX(리다이렉트)일 뿐 — 실제 인가는 서버 RLS가 강제한다(auth-isolation).
 // getMyAcademy는 3-state: 소속 있음 / 소속 없음(null) / 확인 실패(err). 확인 실패를 "소속 없음"으로
@@ -53,6 +54,7 @@ if (root) {
       { path: "logout", mount: async () => { await signOut(); location.hash = "#/login"; } },
       { path: "students", mount: (r) => guardApp(() => mountStudentsPage(r)) },
       { path: "subjects", mount: (r) => guardApp(() => mountSubjectsPage(r)) },
+      { path: "stats", mount: (r) => guardApp(() => mountStatsPage(r)) },
       { path: "students/new", mount: (r) => guardApp(() => mountStudentFormPage(r, "create")) },
       { path: "students/:id/edit", mount: (r, p) => guardApp(() => mountStudentFormPage(r, "edit", p.id)) },
       { path: "students/:id/evaluate", mount: (r, p) => guardApp(() => mountEvaluationFormPage(r, p.id ?? "")) },

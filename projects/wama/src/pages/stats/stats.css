@@ -1,0 +1,96 @@
+/* 성적 통계 페이지 — design-rules 토큰만. 색/radius/shadow 하드코딩 금지. 간격 짝수(2배수). */
+
+/* ── 탭 (인증 세그먼트 언어 재사용) ── */
+.tabbar {
+  display: inline-flex;
+  gap: var(--space-1);
+  background: var(--status-wait-bg);
+  padding: var(--space-1);
+  border-radius: var(--radius);
+  margin-bottom: var(--space-6);
+}
+.tab {
+  border: 0;
+  background: transparent;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-weight: 600;
+  color: var(--status-wait-fg); /* 트랙(#f1f5f9) 위 대비 4.5:1 이상 (muted는 미달) */
+  cursor: pointer;
+}
+.tab:hover { color: var(--ink); }
+.tab--active { background: var(--bg-surface); color: var(--brand-strong); box-shadow: var(--shadow-thin); }
+.tab:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* ── 차트 카드 ── */
+.chart-card { padding: var(--space-5); margin-bottom: var(--space-6); }
+.chart-head { margin-bottom: var(--space-4); }
+.chart-head--row { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); flex-wrap: wrap; }
+.chart-head h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--ink); }
+.chart-head p { margin: var(--space-1) 0 0; font-size: 13px; color: var(--muted); max-width: 640px; }
+.chart { overflow-x: auto; }
+.chart-empty { padding: var(--space-8); text-align: center; }
+.subject-picker { min-width: 160px; }
+
+/* ── SVG 차트 (색만으로 정보 의존 금지 → 모든 포인트·막대에 값 라벨) ── */
+.c-svg { display: block; width: 100%; height: auto; min-width: 560px; }
+.c-grid { stroke: var(--line); stroke-width: 1; }
+.c-axisline { stroke: var(--line); stroke-width: 1; }
+.c-axis { fill: var(--muted); font-size: 12px; font-family: var(--font-sans); }
+.c-axisyear { fill: var(--muted); font-size: 11px; opacity: 0.85; font-family: var(--font-sans); }
+.c-line { fill: none; stroke: var(--brand); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.c-area { /* fill 은 인라인 url(#gradient) — 아래 stop 색만 토큰으로 */ }
+.c-area-stop0 { stop-color: var(--brand); stop-opacity: 0.16; }
+.c-area-stop1 { stop-color: var(--brand); stop-opacity: 0; }
+.c-bar { fill: var(--brand); }
+.c-dot { fill: var(--bg-surface); stroke: var(--brand); stroke-width: 2; }
+.c-dot--sel { fill: var(--brand-strong); stroke: var(--bg-surface); stroke-width: 2; }
+.c-halo { fill: var(--brand); opacity: 0.18; }
+.c-valnum { fill: var(--brand-strong); font-size: 12px; font-weight: 600; font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+.c-vallabel { fill: var(--brand-strong); font-size: 12px; font-weight: 700; font-family: var(--font-sans); font-variant-numeric: tabular-nums; }
+.c-mark { cursor: pointer; }
+.c-hit { fill: transparent; }
+.c-mark:focus-visible { outline: none; }
+.c-mark:focus-visible .c-dot,
+.c-mark:hover .c-dot { stroke-width: 3; }
+.c-mark:focus-visible .c-hit { stroke: var(--brand); stroke-width: 2; }
+
+/* ── 요약 카드 보조 ── */
+.subject-pill {
+  display: inline-block;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  border: 1px solid var(--brand-border);
+  border-radius: var(--radius-sm);
+  padding: 2px var(--space-2);
+  font-size: 13px;
+  font-weight: 600;
+  margin-right: var(--space-2);
+}
+.best-num { color: var(--ink); }
+
+/* ── 드릴다운 / 표 ── */
+.drill { margin-top: var(--space-5); border-top: 1px solid var(--line); padding-top: var(--space-5); }
+.drill-head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-3); }
+.drill-title { font-weight: 700; color: var(--ink); }
+.drill-sub { color: var(--muted); font-size: 13px; }
+.tag {
+  background: var(--brand-soft);
+  color: var(--brand-strong);
+  border: 1px solid var(--brand-border);
+  border-radius: 999px;
+  padding: 2px var(--space-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+.table-card table { width: 100%; border-collapse: collapse; text-align: left; }
+.table-card th, .table-card td { padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--line); font-size: 14px; color: var(--ink); }
+.table-card th { color: var(--muted); font-weight: 600; font-size: 13px; }
+.table-card tbody tr:last-child td { border-bottom: 0; }
+.num-cell { text-align: right; }
+.rowlink { cursor: pointer; }
+.rowlink:hover { background: var(--brand-soft); }
+.name-link { color: var(--brand-strong); text-decoration: none; font-weight: 600; }
+.name-link:hover { text-decoration: underline; }
+.name-link:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 2px; }

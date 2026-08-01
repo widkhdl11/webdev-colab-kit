@@ -12,11 +12,13 @@
   학원인지 지점인지 auth-isolation 스펙에 영향. → **결정 필요 + auth-isolation 스펙에서 확정**
   <!-- 관련: auth-isolation(봉인됨 — 확정 시 재승인 절차 필요) -->
 - 🟡 **과목(subject) 자유문자열 → 엔티티/코드화 검토**. rename 소급 안 됨·통계 분열 위험. → **결정 필요(DECISIONS)**
-  <!-- 관련: schedule · evaluation · exam-score · stats -->
+  <!-- 관련: schedule · evaluation · exam-score -->
+  <!-- stats 소진(2026-07-31, /spec stats): 통계는 저장 문자열 그대로 그룹, 병합·정규화 안 함(비범위). 근거 DECISIONS 2026-07-25. -->
 - 🟡 **유일성·중복**: 동명이인 구별 수단 / 시간표 시간 겹침 / 시험 중복 입력. → **스펙(중복 방지) + UI(동명이인 구별)**
   <!-- 관련: student-registration · schedule · exam-score -->
-- 🟡 **기준 시점·단위**: 진급 기준일 3/1(Asia/Seoul) · "이번 달" 시간대 · 점수 단위/만점 가변. → **스펙에 포함**
-  <!-- 관련: student-registration(학년 파생) · evaluation("이번 달") · exam-score/stats(점수 단위) -->
+- 🟡 **기준 시점·단위**: 진급 기준일 3/1(Asia/Seoul) · "이번 달" 시간대. → **스펙에 포함**
+  <!-- 관련: student-registration(학년 파생) · evaluation("이번 달") -->
+  <!-- 점수 단위/만점 가변 소진(2026-07-31, /spec stats): 통계는 (score/max_score)×100 백분율 환산 후 집계(INV-ST2). max_score는 exam_score 행별 저장(0007). -->
 - 🟡 **교차 테이블 학원 무결성** (security-reviewer 2026-07-24, LOW-MEDIUM, 이월). evaluation/schedule의
   student_id가 타 학원 학생을 가리켜도 RLS는 academy_id만 보므로 통과 → 내 학원 밑에 타 학원 학생 참조 행 생성
   가능(직접 유출 아님, 무결성 오염). 지금은 student/schedule/evaluation이 목업 repo라 미도달. → **student·시간표·

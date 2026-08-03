@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>wama · 학부모 전달용 수강료 안내 이미지 (확정안)</title>
+
+<!--
+  ★ 이 파일은 "확정안 한 벌"이다. 이후 구현(projects/wama/src/)은 주 프레임 하나를 시각 스펙으로 삼는다.
+    아래 축소 프레임 2개는 "고를 다른 안"이 아니라 **같은 디자인에 과목 수만 다르게 넣은 것**이다(3과목 / 1과목).
+
+  시안: 학부모 전달용 "시간표 + 수강료 안내" PNG — 앱 화면이 아니라 카톡/문자로 보내는 출력물.
+  최초 작성 2026-08-03 · 1차 피드백 반영 2026-08-03 · 2열 시도 2026-08-03
+    · **2열 철회 · 1열 복원 + 세로 가변 2026-08-03 (현재)**
+
+  ══════════════════════════════════════════════════════════════════════════════
+  ▣ 캔버스 규격 (이번 개정으로 바뀐 핵심 — 옛 표기가 한 군데도 남으면 안 된다)
+  ══════════════════════════════════════════════════════════════════════════════
+    **폭 1080px 고정 · 높이 가변(최소 1350px).**
+      · 폭은 언제나 1080px.
+      · 높이는 내용만큼 늘어난다. 다만 **1350px 아래로는 내려가지 않는다**(min-height) —
+        과목이 1~2개인 흔한 경우엔 지금까지의 4:5 카드 인상이 그대로 유지되고,
+        과목이 많으면 그만큼 길어진 세로 카드가 된다.
+      · 옛 규격 "정확히 1080 × 1350 px 고정"은 **폐기**됐다. A4·PDF 없음은 그대로(INTERVIEW F7).
+    ※ 아래 미리보기는 zoom 으로 축소한 "보기용"일 뿐이다. 캔버스 안의 모든 px 값은 1080 기준 실측치다.
+      (높이가 가변이라 transform: scale 로는 미리보기 틀 높이를 맞출 수 없어 zoom 으로 바꿨다.
+       zoom 은 레이아웃까지 축소하므로 틀이 카드 높이를 그대로 따라간다. 미리보기 전용 장치다.)
+
+  ══════════════════════════════════════════════════════════════════════════════
+  ── 2026-08-03 개정 ③: 시간 열 제거 (이번 변경) ──
+  ══════════════════════════════════════════════════════════════════════════════
+    ── checkpoint 피드백 원문 (사용자, 2026-08-03) ──
+      "음.. 시간은 빼도 될거 같다"
+
+    ── 경위 (이 항목은 세 번 뒤집혔다 — 그대로 남긴다) ──
+      ① INTERVIEW F6: "시간은 필요 없을 것 같다"  → 시간 없음
+      ② 1차 checkpoint 에서 C안(=시간 열 포함) 채택 → 시간 있음 (F6 번복)
+      ③ 이번 checkpoint: 실물 크기 렌더를 보고 다시 제거 → **시간 없음이 최종**
+      제거 사유는 사용자 판단이다. 설계 쪽에서 걸었던 우려("시간이 없으면 학부모가 몇 시에
+      아이를 보낼지 모른다")는 ②에서 이미 제시됐고, 사용자가 그것을 알고 ③을 골랐다.
+      → 시간을 다시 넣자는 논의가 나오면 이 우려부터 꺼낼 것. 새로 발견할 필요 없다.
+
+    ── 무엇을 바꿨나 ──
+      · thead 의 "시간" th 와 각 행의 시간 td 를 전부 제거(주 프레임 + 참고 프레임 2개).
+      · 사문화된 .col-time CSS 제거(우측 정렬·26px muted·머리 20px).
+      · 표는 이제 **과목 / 요일 두 칸**이다. 열 머리는 그대로 유지된다(개정 ②의 결정).
+      · 행 높이·카드 높이는 변하지 않는다(시간은 행 안의 한 칸이었을 뿐 줄을 늘리지 않았다).
+
+  ══════════════════════════════════════════════════════════════════════════════
+  ── 2026-08-03 개정 ②: 2열 철회 · 1열 복원 · 세로 가변 ──
+  ══════════════════════════════════════════════════════════════════════════════
+    ── checkpoint 피드백 원문 (사용자, 2026-08-03) ──
+      "열머리 제거하면 안되고, 그냥 길게 하는게 좋을거 같다, 시간표 2열로 나누지말고 1열로해줘"
+
+    ── 경위 (정직하게 남긴다) ──
+      직전 개정 ①에서 시간표를 **좌우 2열**로 흘렸었다. 이유는: 이 시안이 원래 "과목 2행" 예산으로
+      짜여 있었는데(1350px 꽉 참) 스펙 인터뷰에서 **학생 평균 3과목·최대 6과목**이 확인돼
+      대부분의 학생이 넘쳤기 때문이다. 카드 규격 1080×1350 을 지키려고 2열을 택했고,
+      그 대가로 **열 머리(과목/요일/시간)를 없앴다**(2열에서는 머리를 열마다 두 번 반복해야 했다).
+      → 이 checkpoint 에서 **되돌려졌다.** 사용자가 고른 해법은 "열 머리 유지 + 1열 + 카드가 길어지는 것".
+        즉 지켜야 할 것은 4:5 비율이 아니라 **표의 읽는 법**이었다. 2열 시절의 CSS·실측치·설명은
+        이 파일에서 전부 걷어냈다(남겨두면 구현하는 쪽에 거짓말이 된다).
+
+    ── 무엇을 바꿨나 (시간표 블록 + 캔버스 높이, 이 둘뿐) ──
+      [a] **1열 복원.** 과목이 위에서 아래로 한 줄씩 쌓이는 원래 표 구조로 돌아갔다.
+          ul/li 로 흘리던 2열 뼈대와 열 사이 세로 헤어라인은 함께 사라졌다.
+      [b] **열 머리 복원.** thead 의 과목 / 요일 을 th scope="col" 로 되살렸고,
+          과목 칸은 th scope="row" 다. 1열이라 머리를 반복할 일이 없어 문제가 없어졌다.
+      [c] **캔버스 세로 가변.** height 고정 1350 → min-height: 1350px + 내용만큼 신장.
+          1열 6과목은 1350px 안에 들어갈 수 없다 — 줄이는 대신 카드를 늘린다(사용자 선택).
+      [d] **타이포 원복.** 2열 때 칸 폭이 절반이라 줄였던 27/26/25 를, 전폭(≈840px)에 맞는
+          원래 크기로 되돌렸다: 과목 28px/700(칸 폭 200px) · 요일 28px
+          · 열 머리 20px muted. 전폭에서 27px 대는 작아 보이고, 28px 가 본문 27px 와 같은 결로 읽힌다.
+      [e] .spacer 2개(시간표 아래 · 꼬리 위)는 **최소 높이 1350 에 못 미칠 때만** 일한다.
+          내용이 1350 을 넘으면 둘 다 0 이 되고 카드 높이는 순수하게 내용이 정한다(모순 없음).
+          모자랄 때만 남는 높이를 반씩 나눠 가져, 과목이 1~2개여도 바닥만 휑해지지 않는다.
+
+    ── 손대지 않은 것 ──
+      브랜드 마크 · 대상 월 · 학생 블록(이름 48px) · 금액 62px 절제 · 입금 한 줄 · 추가 문구 · 꼬리.
+      전부 checkpoint 를 거쳐 승인된 것들이라 이번 개정 범위 밖이다.
+
+    ── 세로 실측 (헤드리스 Chrome 150 · 1080 폭 · Pretendard 로드 확인 fonts.check=true) ──
+      방법: 이 파일을 임시 복제해 zoom 해제(=1) 로 두고 캔버스 실제 높이를 재고,
+        같은 판에서 .spacer 를 숨겨 "내용만의 자연 높이"도 따로 쟀다(계측 스크립트는 임시본에만).
+        추가로 1080 폭 스크린샷을 떠서 잘림·빈칸을 눈으로 확인했다.
+        · **6과목(주 프레임): 내용 1566px → 카드 1566px** (최소 높이를 넘으므로 그대로 신장, .spacer=0)
+        · **3과목: 내용 1362px → 카드 1362px** (.spacer=0)
+        · **1과목: 내용 1226px → 카드 1350px** (최소 높이가 걸림 · 남는 124px 를 .spacer 2개가 62/62 로 분배)
+        · 과목 1행 = 68px(글자 42 + 상하 여백 24 + 헤어라인 2). 마지막 행은 밑줄·아래 여백 없음(−13px).
+          검산: 6과목 1566 − 3과목 1362 = 204 = 68×3.
+        · 요일이 4~5일인 과목("월 · 화 · 수 · 목 · 금" + 6자 과목명 "생활과학탐구")을 넣어도
+          **1열에서는 줄바꿈·잘림 없음** — 행 높이 68px 그대로, 카드 높이도 1566px 그대로.
+          (요일 열 실측 폭 360px / 5일 표기 ≈193px · 과목 열 200px / 6자 ≈168px)
+          2열 때 있던 이 위험은 1열 복원으로 해소됐다.
+      → 남은 한계선: 없음(과목 수만큼 카드가 길어진다). 다만 카드가 너무 길어지는 과목 수 상한을 둘지는
+        payment-notice-export 스펙의 몫이다. 참고 비율: 6과목 1080×1566(≈1:1.45) / 1과목 1080×1350(4:5).
+
+  ══════════════════════════════════════════════════════════════════════════════
+  ── (이전) checkpoint 피드백 원문 (사용자, 2026-08-03) ──
+    "1.C안이 좋다. 2.A처럼 절제 3.적당하다 4. 한줄로 통일하는대신 잘 구별이가게 해줘"
+
+  ── 위 피드백을 어떻게 반영했나 (변경 이력) ──
+    [1] C안 채택 → A·B 비교 프레임을 파일에서 삭제하고 확정안 한 벌만 남김.
+        C = "B의 블록 구조 + 시간 열". 앞서 INTERVIEW F6 의 "시간 필요 없음"은 이 피드백으로 뒤집혔고,
+        이제 **시간 열은 정식 구성요소**다. (→ 개정 ③에서 다시 제거됨. 최종은 시간 없음)
+        A안 전용 CSS와 B/C의 틸 채움 CSS(.block--brand)는 사문화되어 제거 —
+        이 파일이 구현의 시각 스펙이므로 죽은 규칙을 남기지 않는다.
+    [2] "A처럼 절제" → 금액 블록의 --brand-strong 채움 + 흰 글자를 폐기.
+        A안 방식(헤어라인 + 틸 글자)으로 되돌리되, 채움으로 얻던 무게를 **크기·굵기·여백**으로 다시 세움:
+        값 64px → 72px → **62px**(2차 피드백 "살짝 줄여줘") / 위아래 --brand-border 헤어라인 2줄로
+        띠(band) 형성 / 상하 여백 28px. 채움을 뺀 무게는 띠와 여백이 대신 받는다.
+        (출력물엔 hover·focus 가 없다 → 위계는 크기·대비로만.)
+        위계 순서: 학생 이름(연배경 블록 안 48px, 오발송 방지 앵커) > 금액(62px 틸) > 계좌번호(44px ink).
+    [3] 학생 이름 48px = "적당하다" → 손대지 않음 (.student-name 그대로).
+    [4] 입금 정보 3줄/2줄 분산 → **한 줄(.pay)** 로 통일. 대신 구별은 위계 + 구분자로:
+        은행 26px/700/ink · [세로 헤어라인] · 계좌번호 44px/700/ink/tabular-nums/letter-spacing .02em
+        · [세로 헤어라인] · "예금주"(20px muted 라벨) + 이름(24px ink).
+        두 번째 의미색 없음 — 틸 단일 강조 유지. 세 항목이 같은 baseline 에 정렬돼 한 덩어리로 읽히고,
+        크기 44 / 26 / 24 의 격차와 세로 구분선이 경계를 만든다.
+        ※ 계좌번호를 틸이 아니라 ink 로 둔 이유: 오독=돈 사고라 대비가 최우선인데
+          ink(#1e293b) on 흰 배경 ≈ 13:1 > brand-strong(#0f766e) ≈ 5:1. 틸은 금액 하나에만 예약해
+          "이 카드에서 틸로 칠해진 숫자는 금액뿐"이라는 규칙도 지켜진다.
+
+  근거 문서:
+    - projects/wama/docs/design/design-rules.md "학부모 전달용 출력물"(checkpoint 승인 2026-08-03) — 단일 진실
+      ※ 이번 개정으로 그 블록의 **캔버스 규격 문장과 세로 예산 문장**은 갱신이 필요하다(보고 참조).
+    - projects/wama/docs/specs/payment-notice-export.md (approved·봉인 INV-PN1~PN7) —
+      "이미지에 담기는 것"(시간표: 과목=행, 요일 나열 — 시간은 개정 ③으로 제거, 스펙 🔓 갱신 필요) · INV-PN3(담지 않는 것) · INV-PN4(이름+대상 월 필수)
+    - projects/wama/src/shared/ui/tokens.css — 색/radius/shadow 토큰 (아래 :root 에 같은 값으로 미러)
+    - projects/wama/docs/design/INTERVIEW-evaluation-export.md "회차 3" — 확정 결정표
+      (F6/ㄴ: 과목이 행 · 요일 나열 / F8: 450,000원 / B: 편지풍 · 여백 넉넉 · 틸 유지)
+      단, F6 의 "시간 미표기"는 [1] 에서 번복됐다가 개정 ③에서 원복 — **최종: 시간 없음**.
+    - projects/wama/docs/design/mockups/auth.html — 브랜드 마크('온' 로고 사각형 + 학원명) 언어 재사용
+  전역 톤은 유지하고 밀도만 반대로 간다: 화면=정보 밀집(표 중심) / 이 출력물=편지풍 + 여백 넉넉.
+  색은 틸 단일 강조 유지 — 두 번째 의미색 없음(danger 는 폼 오류 전용이라 여기선 미사용).
+  블록마다 글자 라벨(수업 시간표 / 8월 수강료 / 입금 계좌 / 안내)을 달아 색·위치만으로 의미를 전달하지 않는다.
+  주: 정적 HTML/CSS 시안. JS·API·비즈니스 로직 없음. 데이터는 전부 가짜 하드코딩.
+
+  ── design-rules.md 에 없어 새로 제안하는 값 (checkpoint 승인 후 "출력물" 블록에 반영될 후보) ──
+    1) --radius-print = --radius × 2 (16px) · 2) 인쇄용 헤어라인 2px(--hairline)
+    3) 편지풍 본문 27px / 1.75 · 4) 계좌번호 44px·700·ink·tabular-nums·.02em
+    5) 금액은 채움 없이 헤어라인 띠 + 틸 62px · 6) 입금 한 줄 규약(은행 │ 계좌 │ 예금주)
+    ★ 이번 개정으로 갈아끼워야 하는 것 (2열 시절 제안은 폐기):
+    7) **캔버스 규격 문장 교체**: "정확히 1080×1350 고정" → **"폭 1080px 고정 · 높이 가변(최소 1350px)"**.
+    8) **시간표는 1열 · 열 머리 있음.** 과목=행 · 요일 나열 (시간 없음 — 개정 ③).
+       타이포: 열 머리 20px muted(아래 헤어라인) · 과목 28px/700(칸 폭 200px) · 요일 28px
+       (시간 열 없음 — 개정 ③)
+    9) **세로 예산 문장 교체**: "과목 2행 기준 1295/1350, 3행부터 넘침" →
+       **"과목 1행 = 68px 이고 카드가 그만큼 길어진다(6과목 1566px). 내용이 1350px 에 못 미치면
+       .spacer 2개(시간표 아래·꼬리 위)가 남는 높이를 반씩 흡수한다."**
+-->
+
+<!-- Pretendard (한글 가독성 — design-rules 폰트 규약). 기존 시안(auth/stats)과 동일한 CDN·버전. -->
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+
+<style>
+  /* ===== 토큰 (projects/wama/src/shared/ui/tokens.css 동기화 — 인라인 미러) ===== */
+  :root {
+    --brand: #0d9488;
+    --brand-hover: #0b8177;
+    --brand-strong: #0f766e;
+    --brand-strong-hover: #115e59;
+    --brand-soft: #f0fdfa;
+    --brand-border: #99f6e4;
+    --on-brand: #ffffff;
+
+    --bg-page: #f8fafc;
+    --bg-surface: #ffffff;
+    --ink: #1e293b;
+    --muted: #64748b;
+    --line: #e2e8f0;
+
+    --status-wait-bg: #f1f5f9;
+    --status-wait-fg: #475569;
+
+    --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+    --space-5: 20px; --space-6: 24px; --space-8: 32px;
+
+    --radius: 8px;
+    --radius-sm: 6px;
+    --shadow-thin: 0 1px 2px rgba(15,23,42,.04), 0 1px 3px rgba(15,23,42,.06);
+    --maxw: 1120px;
+    --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+    /* --- 출력물 전용 파생값 (신규 제안 — 위 주석 참조) --- */
+    --radius-print: calc(var(--radius) * 2);   /* 16px */
+    --hairline: 2px;
+    --canvas-w: 1080px;                        /* 폭: 고정 */
+    --canvas-min-h: 1350px;                    /* 높이: 최소값. 이 위로는 내용만큼 늘어난다 */
+    --preview: 0.5;                            /* 미리보기 축소 배율 — 보기용 전용 */
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: var(--font-sans);
+    background: var(--bg-page);
+    color: var(--ink);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* 포커스 링 (접근성: 제거 금지) */
+  a:focus-visible, button:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  /* ================= 미리보기 판 (이미지에 포함되지 않는 설명 영역) ================= */
+  .sheet {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: var(--space-8) var(--space-6) 64px;
+  }
+  .sheet-head { margin-bottom: var(--space-8); }
+  .sheet-head h1 {
+    margin: 0 0 var(--space-3);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .sheet-head p {
+    margin: 0 0 var(--space-2);
+    max-width: 900px;
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+  .sheet-head b { color: var(--brand-strong); font-weight: 700; }
+  .sheet-head ul {
+    margin: var(--space-3) 0 0;
+    padding-left: 18px;
+    max-width: 900px;
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .sheet-head code {
+    font-size: 13px;
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    background: var(--status-wait-bg);
+    color: var(--status-wait-fg);
+  }
+
+  .frame { margin: 0; }
+  .frame-head {
+    width: calc(var(--canvas-w) * var(--preview));
+    margin-bottom: var(--space-3);
+  }
+  .frame-title {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  /* "이게 확정안" 임을 화면에서도 못 놓치게 — 완료 뱃지 언어(brand-soft + brand-strong) 재사용 */
+  .frame-badge {
+    display: inline-block;
+    margin-bottom: var(--space-2);
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--brand-soft);
+    border: 1px solid var(--brand-border);
+    color: var(--brand-strong);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+  }
+  /* 참고 프레임 뱃지 — 브랜드색을 쓰지 않는다. "고를 안"이 아니라 같은 안의 다른 입력이기 때문. */
+  .frame-badge--ref {
+    background: var(--status-wait-bg);
+    border-color: var(--line);
+    color: var(--status-wait-fg);
+  }
+  .frame-desc {
+    display: block;
+    margin-top: var(--space-1);
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .frame-spec {
+    display: inline-block;
+    margin-top: var(--space-2);
+    padding: 2px var(--space-2);
+    border-radius: var(--radius-sm);
+    background: var(--status-wait-bg);
+    color: var(--status-wait-fg);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  /* 미리보기 틀 — 높이를 지정하지 않는다. 카드 높이가 가변이므로 틀이 카드를 그대로 따라가야
+     미리보기 자체가 "높이가 데이터에 따라 변한다"는 사실을 보여준다. */
+  .frame-view {
+    width: fit-content;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow-thin);
+    background: var(--bg-surface);
+  }
+
+  /* --- 참고 프레임 구역 (이미지에 포함되지 않음) ---
+     "다른 안"이 아니라 **같은 확정안에 데이터(과목 수)만 다르게 넣은 것**임을 구조로도 못 헷갈리게:
+     구분선 아래 · 회색 라벨 · 배율만 다르고 캔버스 CSS 는 주 프레임과 100% 동일하다. */
+  .ref-section { margin-top: 48px; padding-top: var(--space-8); border-top: 1px solid var(--line); }
+  /* > 자식 선택자 필수 — 이 설명 문단 스타일이 아래 캔버스 안의 <p>(인사말·입금·꼬리)로 새면
+     참고 프레임이 주 프레임과 다르게 그려져 "같은 안"이라는 전제가 깨진다. */
+  .ref-section > h2 { margin: 0 0 var(--space-2); font-size: 17px; font-weight: 700; }
+  .ref-section > p { margin: 0 0 var(--space-5); max-width: 900px; font-size: 15px; color: var(--muted); line-height: 1.65; }
+  .ref-section > p b { color: var(--brand-strong); font-weight: 700; }
+  /* 높이가 서로 다른 두 장을 나란히 — 위 모서리를 맞춰야 길이 차이가 보인다 */
+  .ref-row { display: flex; gap: var(--space-8); flex-wrap: wrap; align-items: flex-start; }
+  .frame--ref { --preview: 0.4; }
+
+  /* ================= 캔버스 (폭 1080px 고정 · 높이 가변, 최소 1350px) ================= */
+  .canvas {
+    width: var(--canvas-w);
+    min-height: var(--canvas-min-h);   /* 이 아래로는 안 내려간다 (과목이 적어도 4:5 인상 유지) */
+    height: auto;                      /* 이 위로는 내용만큼 늘어난다 (과목이 많으면 길어진다) */
+    /* 미리보기 축소는 zoom — 높이가 가변이라 transform:scale 로는 틀 높이를 맞출 수 없다.
+       zoom 은 레이아웃을 함께 축소하므로 틀(.frame-view)이 카드 높이를 그대로 따라간다.
+       실제 PNG 출력은 zoom 없이(=1) 1080 폭으로 그린다. */
+    zoom: var(--preview);
+    background: var(--bg-surface);
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    padding: 64px 88px 56px;
+    line-height: 1.5;
+  }
+  /* 기본 마진 초기화 — :where() 로 특정도 0 을 유지해야 아래 .mt-* 유틸이 이긴다 */
+  .canvas :where(p, dl, dt, dd, table) { margin: 0; }
+  /* 내용이 최소 높이(1350)에 못 미칠 때만 일한다. 넘으면 둘 다 0 이 되고 높이는 내용이 정한다.
+     두 곳(시간표 아래 · 꼬리 위)이 남는 높이를 반씩 나눠 가져 바닥만 휑해지지 않는다. */
+  .spacer { flex: 1 1 auto; min-height: 0; }
+
+  /* --- 브랜드 마크 (auth.html 마크 언어 재사용, 출력물 배율) --- */
+  .mark { display: flex; align-items: center; gap: 20px; justify-content: space-between; }
+  .mark-id { display: flex; align-items: center; gap: 20px; }
+  .mark-logo {
+    width: 64px; height: 64px;
+    flex: 0 0 64px;
+    border-radius: var(--radius-print);
+    background: var(--brand-strong);
+    color: var(--on-brand);
+    font-size: 30px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mark-name { display: block; font-size: 28px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.2; }
+  .mark-branch { display: block; font-size: 22px; color: var(--muted); line-height: 1.3; }
+
+  /* --- 라벨(눈썹): 색이 아니라 글자로 의미를 준다 --- */
+  .eyebrow {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--brand-strong);
+  }
+  .section-label {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  /* --- 대상 월 (파일이 카톡방에 쌓여도 어느 달 건지 즉시 구분) --- */
+  .month-head { text-align: right; }
+  .month-head .eyebrow { display: block; }
+  .month-head .month {
+    display: block;
+    margin-top: 6px;
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+
+  .rule { height: var(--hairline); background: var(--line); border: 0; margin: 0; }
+  .rule-strong { height: var(--hairline); background: var(--brand-border); border: 0; margin: 0; }
+
+  /* --- 학생 (오발송 방지: 누구 것인지 즉시 보이게) --- */
+  /* 이름 48px 은 피드백 3 "적당하다" 로 확정 — 변경 금지 */
+  .student-name { font-size: 48px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; }
+  .student-meta { font-size: 26px; color: var(--muted); line-height: 1.4; }
+  .student-head { display: flex; align-items: baseline; gap: 16px; }
+
+  /* --- 본문(인사말) --- */
+  .letter { font-size: 27px; line-height: 1.75; }
+
+  /* --- 블록 (둥근 모서리로 정보를 덩어리 짓는다) --- */
+  .block { border-radius: var(--radius-print); padding: 24px 32px; }
+  .block--line { border: var(--hairline) solid var(--line); background: var(--bg-surface); }
+  .block--soft { border: var(--hairline) solid var(--brand-border); background: var(--brand-soft); }
+  .block--wait { background: var(--status-wait-bg); padding: 20px 32px; }
+
+  /* ===== 시간표 — 1열 표 · 열 머리 있음 (개정 ②: 2열 철회 후 복원 / 개정 ④: 2칸 중앙 정렬) =====
+     과목이 위에서 아래로 한 줄씩 쌓인다. 과목 수만큼 카드가 길어질 뿐, 읽는 법은 변하지 않는다.
+     · 열 머리(과목/요일)는 th scope="col", 과목 칸은 th scope="row" — 진짜 표 구조.
+     · 개정 ③에서 시간 열이 빠지자 두 칸이 왼쪽에 몰려 오른쪽 절반이 비었다(사용자 지적).
+       → 개정 ④: 두 칸을 **50% / 50% 로 나누고 각 칸 안에서 중앙 정렬**한다. 세 칸이던 시절의
+       왼쪽 정렬을 그대로 두면 시간 열이 있던 자리가 빈 채로 남는다.
+       열 머리도 같은 정렬을 따라야 머리와 값이 같은 축에 선다.
+     · 전폭(836px)의 절반씩이라 요일이 4~5일이어도 줄바꿈·잘림이 없다(5일 표기 ≈193px).
+     · 행 1개 = 68px(글자 42 + 상하 여백 24 + 헤어라인 2). 마지막 행은 밑줄·아래 여백 없음. */
+  .timetable { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .timetable caption { text-align: left; padding-bottom: 8px; }
+  .timetable th, .timetable td { text-align: center; vertical-align: baseline; }
+  .timetable thead th {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    padding: 0 0 8px;
+    border-bottom: var(--hairline) solid var(--line);
+  }
+  .timetable tbody th, .timetable tbody td {
+    font-size: 28px;
+    padding: 12px 0;
+    border-bottom: var(--hairline) solid var(--line);
+  }
+  .timetable tbody tr:last-child th,
+  .timetable tbody tr:last-child td { border-bottom: 0; padding-bottom: 0; }
+  .timetable .col-subject { width: 50%; font-weight: 700; }
+
+  /* --- 청구 금액 (피드백 2: 채움 폐기 → 헤어라인 띠 + 틸 글자) ---
+     채움으로 얻던 무게를 크기·굵기(700)·여백(상하 28px)·헤어라인 2줄로 대체.
+     카드에서 틸로 칠해진 숫자는 이것 하나뿐이다.
+     2026-08-03 checkpoint 2차: 72px → 62px ("금액 크기 살짝 줄여줘").
+     학생 이름 48px 위, 계좌번호 44px 위를 유지해 위계 순서는 그대로. */
+  .amount-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px 0;
+  }
+  .amount-label { font-size: 28px; color: var(--muted); }
+  .amount-value {
+    font-size: 62px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--brand-strong);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+
+  /* --- 입금 안내: 한 줄 통일 + 구별 (피드백 4) ---
+     은행 / 계좌번호 / 예금주 를 같은 baseline 에 놓아 한 덩어리로 읽히게 하고,
+     크기·굵기·색 위계(44/700/ink · 26/700/ink · 24/500/ink+20 muted 라벨)와
+     세로 헤어라인 구분자로 경계를 만든다. 두 번째 의미색은 쓰지 않는다. */
+  .pay { display: flex; align-items: baseline; gap: 20px; flex-wrap: nowrap; }
+  .pay-sep {
+    flex: 0 0 var(--hairline);
+    width: var(--hairline);
+    height: 44px;
+    align-self: center;
+    background: var(--brand-border);
+  }
+  .pay-bank { font-size: 26px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+  .pay-account {
+    font-size: 44px;
+    font-weight: 700;
+    color: var(--ink);              /* 대비 최우선(≈13:1) — 오독이 곧 돈 사고 */
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .pay-holder { font-size: 24px; color: var(--ink); white-space: nowrap; }
+  .pay-holder-label { font-size: 20px; color: var(--muted); margin-right: 8px; letter-spacing: 0.06em; }
+
+  /* --- 추가 문구 --- */
+  .extra { display: flex; gap: 16px; font-size: 26px; line-height: 1.5; }
+  .extra-tag { flex: 0 0 auto; font-weight: 700; color: var(--brand-strong); }
+
+  /* --- 꼬리 --- */
+  .foot { font-size: 22px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* 세로 리듬 유틸 (짝수 px만) */
+  .mt-4  { margin-top: 4px; }   .mt-8  { margin-top: 8px; }   .mt-12 { margin-top: 12px; }
+  .mt-16 { margin-top: 16px; }  .mt-20 { margin-top: 20px; }  .mt-24 { margin-top: 24px; }
+  .mt-28 { margin-top: 28px; }  .mt-32 { margin-top: 32px; }
+</style>
+</head>
+
+<body>
+<div class="sheet">
+
+  <header class="sheet-head">
+    <h1>학부모 전달용 수강료 안내 이미지 — <b>확정안</b> (2026-08-03 · 시간표 1열 · 세로 가변)</h1>
+    <p>
+      앱 화면이 아니라 <b>카톡·문자로 보내는 출력물(PNG)</b> 입니다.
+      규격은 <b>폭 1080px 고정 · 높이 가변(최소 1350px)</b> 이고, 아래 프레임은 화면에 담기지 않아
+      <b>축소한 미리보기</b>입니다 — 축소는 보기용일 뿐 실제 px 값은 1080 기준 그대로입니다.
+    </p>
+    <p>
+      직전에 시도했던 <b>시간표 2열</b>은 이번 checkpoint 에서 <b>철회</b>됐습니다.
+      2열은 카드 높이를 1350px 로 묶어두려던 장치였고 그 대가로 열 머리를 잃었는데,
+      선택은 <b>열 머리를 지키고 카드가 길어지는 쪽</b>이었습니다. 그래서 시간표는
+      <b>1열 + 열 머리(과목/요일)</b> 로 돌아왔고, <b>카드 세로가 내용만큼 늘어납니다.</b>
+    </p>
+    <ul>
+      <li>시간표는 <b>1열</b> — 과목이 위에서 아래로 한 줄씩. 열 사이 세로 구분선은 사라졌습니다</li>
+      <li><b>열 머리 복원</b> — 과목 / 요일 (<code>th scope</code> 를 갖춘 진짜 표 머리)</li>
+      <li>카드 높이는 <b>내용만큼</b>. 다만 <b>1350px 아래로는 안 내려갑니다</b>(과목이 적어도 4:5 인상 유지)</li>
+      <li>브랜드 마크·학생 블록·금액·입금 한 줄·꼬리는 <b>손대지 않았습니다</b>(승인분 유지)</li>
+    </ul>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- 확정안 (주 프레임) — 가장 긴 케이스인 6과목으로 그린다.                 -->
+  <!-- 구현은 이 프레임을 그대로 따른다. 아래 참고 프레임은 과목 수만 다르다.  -->
+  <!-- ===================================================================== -->
+  <figure class="frame">
+    <figcaption class="frame-head">
+      <span class="frame-badge">확정안 · 구현 시각 스펙</span>
+      <span class="frame-title">수강료 안내 이미지 (PNG 출력물) — 6과목 · 가장 긴 케이스</span>
+      <span class="frame-desc">
+        시간표는 1열이고 열 머리(과목/요일)를 둔다. 과목 수만큼 카드가 길어진다.
+        금액은 채움 없이 헤어라인 띠로 절제하고, 입금 정보는 한 줄에 모아 크기·구분선으로 구별한다.
+      </span>
+      <span class="frame-spec">규격: 폭 1080px 고정 · 높이 가변(최소 1350px) — 이 케이스 실측 1080 × 1566 px · 아래는 50% 축소 미리보기</span>
+    </figcaption>
+
+    <div class="frame-view">
+      <div class="canvas">
+
+        <!-- 1. 머리 — 마크(좌) + 대상 월(우) -->
+        <div class="mark">
+          <span class="mark-id">
+            <span class="mark-logo" aria-hidden="true">온</span>
+            <span>
+              <span class="mark-name">온학원</span>
+              <span class="mark-branch">대치지점</span>
+            </span>
+          </span>
+          <span class="month-head">
+            <span class="eyebrow">수강료 안내</span>
+            <span class="month tnum">2026년 8월</span>
+          </span>
+        </div>
+
+        <hr class="rule mt-20" />
+
+        <!-- 2. 학생 — 연배경 블록으로 한 덩어리 (오발송 방지 앵커. 이름 48px 확정) -->
+        <div class="block block--soft mt-24">
+          <p class="student-head">
+            <span class="section-label">학생</span>
+            <span class="student-name">김서연</span>
+          </p>
+          <p class="student-meta mt-4">중3 · 한빛중학교 · <span class="tnum">2011</span>년생</p>
+        </div>
+
+        <!-- 기본 안내 문구 ({학생명}·{월}·{금액} 치환 결과) -->
+        <p class="letter mt-24">
+          안녕하세요, 김서연 학부모님. 8월 수강료 <span class="tnum">450,000</span>원을
+          8월 <span class="tnum">10</span>일까지 아래 계좌로 입금 부탁드립니다.
+        </p>
+
+        <!-- 3. 시간표 — 1열 · 과목=행 · 요일 나열 (시간 없음, 개정 ③) · 열 머리 유지
+             과목이 늘면 카드가 그만큼 길어진다(행 1개 = 68px). -->
+        <div class="block block--line mt-24">
+          <table class="timetable">
+            <caption class="section-label">수업 시간표</caption>
+            <thead>
+              <tr>
+                <th scope="col" class="col-subject">과목</th>
+                <th scope="col">요일</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row" class="col-subject">수학</th>
+                <td>월 · 수 · 금</td>
+              </tr>
+              <tr>
+                <th scope="row" class="col-subject">논술</th>
+                <td>화</td>
+              </tr>
+              <tr>
+                <th scope="row" class="col-subject">영어</th>
+                <td>월 · 목</td>
+              </tr>
+              <tr>
+                <th scope="row" class="col-subject">과학</th>
+                <td>수</td>
+              </tr>
+              <tr>
+                <th scope="row" class="col-subject">사회</th>
+                <td>금</td>
+              </tr>
+              <tr>
+                <th scope="row" class="col-subject">한국사</th>
+                <td>토</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="spacer"></div>
+
+        <!-- 4. 청구 금액 — 채움 없이 헤어라인 띠 + 틸 글자 (절제). 크기로 위계 -->
+        <hr class="rule-strong mt-28" />
+        <div class="amount-row">
+          <span class="amount-label">8월 수강료</span>
+          <span class="amount-value">450,000원</span>
+        </div>
+        <hr class="rule-strong" />
+
+        <!-- 5. 입금 안내 — 한 줄에 모으고 크기·구분선으로 구별 -->
+        <div class="block block--soft mt-28">
+          <p class="section-label">입금 계좌</p>
+          <p class="pay mt-12">
+            <span class="pay-bank">국민은행</span>
+            <span class="pay-sep" aria-hidden="true"></span>
+            <span class="pay-account">123456-01-234567</span>
+            <span class="pay-sep" aria-hidden="true"></span>
+            <span class="pay-holder"><span class="pay-holder-label">예금주</span>온학원</span>
+          </p>
+        </div>
+
+        <!-- 6. 추가 문구 -->
+        <div class="block block--wait mt-20">
+          <p class="extra">
+            <span class="extra-tag">안내</span>
+            <span>8월 <span class="tnum">15</span>일(광복절)은 휴원입니다.</span>
+          </p>
+        </div>
+
+        <div class="spacer"></div>
+
+        <!-- 7. 꼬리 -->
+        <hr class="rule" />
+        <p class="foot mt-16">온학원 · 대치지점 · 02-555-1234</p>
+
+      </div>
+    </div>
+  </figure>
+
+  <!-- ===================================================================== -->
+  <!-- 참고 프레임 — 고를 "다른 안"이 아니다. 같은 확정안에 과목 수만 바꾼 것.  -->
+  <!-- 이번 개정부터 이 프레임의 존재 이유는 "카드 높이가 과목 수를 따라간다"를  -->
+  <!-- 눈으로 보여주는 것이다.                                                -->
+  <!-- ===================================================================== -->
+  <section class="ref-section">
+    <h2>참고 — 같은 확정안, 과목 수만 다름 (카드 높이가 따라 변합니다)</h2>
+    <p>
+      아래 둘은 <b>고르는 안(alternative)이 아닙니다.</b> 위 확정안과 CSS가 100% 같고
+      <b>시간표에 들어간 과목 수만 다릅니다.</b> 붙여 둔 이유는 하나입니다 —
+      과목이 줄면 <b>카드도 짧아진다</b>는 것(6과목 1566px → 3과목 1362px), 그리고
+      1과목처럼 짧을 때는 <b>최소 높이 1350px 에서 멈춘다</b>는 것.
+      미리보기 틀이 카드 높이를 그대로 따라가므로 아래 두 장의 세로 길이 차이가 곧 실제 PNG 의 차이입니다.
+      구현이 따라야 할 시각 스펙은 <b>위 주 프레임 하나뿐</b>입니다.
+    </p>
+
+    <div class="ref-row">
+
+      <!-- 참고 A — 3과목 (평균 케이스). 최소 높이를 넘어 내용만큼 늘어난 경우. -->
+      <figure class="frame frame--ref">
+        <figcaption class="frame-head">
+          <span class="frame-badge frame-badge--ref">참고 · 과목 수만 다름</span>
+          <span class="frame-title">3과목 (평균 케이스)</span>
+          <span class="frame-desc">내용이 최소 높이를 넘어 카드가 1362px 로 늘어난 경우.</span>
+          <span class="frame-spec">1080 × 1362 px · 40% 축소</span>
+        </figcaption>
+
+        <div class="frame-view">
+          <div class="canvas">
+
+            <div class="mark">
+              <span class="mark-id">
+                <span class="mark-logo" aria-hidden="true">온</span>
+                <span>
+                  <span class="mark-name">온학원</span>
+                  <span class="mark-branch">대치지점</span>
+                </span>
+              </span>
+              <span class="month-head">
+                <span class="eyebrow">수강료 안내</span>
+                <span class="month tnum">2026년 8월</span>
+              </span>
+            </div>
+
+            <hr class="rule mt-20" />
+
+            <div class="block block--soft mt-24">
+              <p class="student-head">
+                <span class="section-label">학생</span>
+                <span class="student-name">김서연</span>
+              </p>
+              <p class="student-meta mt-4">중3 · 한빛중학교 · <span class="tnum">2011</span>년생</p>
+            </div>
+
+            <p class="letter mt-24">
+              안녕하세요, 김서연 학부모님. 8월 수강료 <span class="tnum">450,000</span>원을
+              8월 <span class="tnum">10</span>일까지 아래 계좌로 입금 부탁드립니다.
+            </p>
+
+            <div class="block block--line mt-24">
+              <table class="timetable">
+                <caption class="section-label">수업 시간표</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" class="col-subject">과목</th>
+                    <th scope="col">요일</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row" class="col-subject">수학</th>
+                    <td>월 · 수 · 금</td>
+                  </tr>
+                  <tr>
+                    <th scope="row" class="col-subject">논술</th>
+                    <td>화</td>
+                  </tr>
+                  <tr>
+                    <th scope="row" class="col-subject">영어</th>
+                    <td>월 · 목</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="spacer"></div>
+
+            <hr class="rule-strong mt-28" />
+            <div class="amount-row">
+              <span class="amount-label">8월 수강료</span>
+              <span class="amount-value">450,000원</span>
+            </div>
+            <hr class="rule-strong" />
+
+            <div class="block block--soft mt-28">
+              <p class="section-label">입금 계좌</p>
+              <p class="pay mt-12">
+                <span class="pay-bank">국민은행</span>
+                <span class="pay-sep" aria-hidden="true"></span>
+                <span class="pay-account">123456-01-234567</span>
+                <span class="pay-sep" aria-hidden="true"></span>
+                <span class="pay-holder"><span class="pay-holder-label">예금주</span>온학원</span>
+              </p>
+            </div>
+
+            <div class="block block--wait mt-20">
+              <p class="extra">
+                <span class="extra-tag">안내</span>
+                <span>8월 <span class="tnum">15</span>일(광복절)은 휴원입니다.</span>
+              </p>
+            </div>
+
+            <div class="spacer"></div>
+
+            <hr class="rule" />
+            <p class="foot mt-16">온학원 · 대치지점 · 02-555-1234</p>
+
+          </div>
+        </div>
+      </figure>
+
+      <!-- 참고 B — 1과목 (최소). 내용(1226px)이 최소 높이에 못 미쳐 1350px 에서 멈춘 경우. -->
+      <figure class="frame frame--ref">
+        <figcaption class="frame-head">
+          <span class="frame-badge frame-badge--ref">참고 · 과목 수만 다름</span>
+          <span class="frame-title">1과목 (최소 케이스)</span>
+          <span class="frame-desc">내용은 1226px 뿐이라 <b>최소 높이 1350px</b> 이 걸린다. 남는 124px 는 62/62 로 위아래에 나뉜다.</span>
+          <span class="frame-spec">1080 × 1350 px (최소 높이 적용) · 40% 축소</span>
+        </figcaption>
+
+        <div class="frame-view">
+          <div class="canvas">
+
+            <div class="mark">
+              <span class="mark-id">
+                <span class="mark-logo" aria-hidden="true">온</span>
+                <span>
+                  <span class="mark-name">온학원</span>
+                  <span class="mark-branch">대치지점</span>
+                </span>
+              </span>
+              <span class="month-head">
+                <span class="eyebrow">수강료 안내</span>
+                <span class="month tnum">2026년 8월</span>
+              </span>
+            </div>
+
+            <hr class="rule mt-20" />
+
+            <div class="block block--soft mt-24">
+              <p class="student-head">
+                <span class="section-label">학생</span>
+                <span class="student-name">김서연</span>
+              </p>
+              <p class="student-meta mt-4">중3 · 한빛중학교 · <span class="tnum">2011</span>년생</p>
+            </div>
+
+            <p class="letter mt-24">
+              안녕하세요, 김서연 학부모님. 8월 수강료 <span class="tnum">450,000</span>원을
+              8월 <span class="tnum">10</span>일까지 아래 계좌로 입금 부탁드립니다.
+            </p>
+
+            <div class="block block--line mt-24">
+              <table class="timetable">
+                <caption class="section-label">수업 시간표</caption>
+                <thead>
+                  <tr>
+                    <th scope="col" class="col-subject">과목</th>
+                    <th scope="col">요일</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <th scope="row" class="col-subject">수학</th>
+                    <td>월 · 수 · 금</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div class="spacer"></div>
+
+            <hr class="rule-strong mt-28" />
+            <div class="amount-row">
+              <span class="amount-label">8월 수강료</span>
+              <span class="amount-value">450,000원</span>
+            </div>
+            <hr class="rule-strong" />
+
+            <div class="block block--soft mt-28">
+              <p class="section-label">입금 계좌</p>
+              <p class="pay mt-12">
+                <span class="pay-bank">국민은행</span>
+                <span class="pay-sep" aria-hidden="true"></span>
+                <span class="pay-account">123456-01-234567</span>
+                <span class="pay-sep" aria-hidden="true"></span>
+                <span class="pay-holder"><span class="pay-holder-label">예금주</span>온학원</span>
+              </p>
+            </div>
+
+            <div class="block block--wait mt-20">
+              <p class="extra">
+                <span class="extra-tag">안내</span>
+                <span>8월 <span class="tnum">15</span>일(광복절)은 휴원입니다.</span>
+              </p>
+            </div>
+
+            <div class="spacer"></div>
+
+            <hr class="rule" />
+            <p class="foot mt-16">온학원 · 대치지점 · 02-555-1234</p>
+
+          </div>
+        </div>
+      </figure>
+
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

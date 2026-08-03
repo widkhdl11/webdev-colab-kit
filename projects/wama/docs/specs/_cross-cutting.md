@@ -24,8 +24,10 @@
   가능(직접 유출 아님, 무결성 오염). 지금은 student/schedule/evaluation이 목업 repo라 미도달. → **student·시간표·
   평가 데이터 계층 배선 시** guard/정책에 "참조 student의 academy = current_academy_id()" 검증 추가.
   <!-- 관련: auth-isolation(뿌리) · schedule · evaluation — 데이터 계층 배선 시점에 발동 -->
-- 🟢 **전학 시 과거 학교 이력**: 과거 평가표에 그때 학교로? (낮음 — 추후)
-  <!-- 관련: student-registration · evaluation-export -->
+<!-- 소진됨(2026-08-03, /spec payment-notice-export):
+     · 전학 시 과거 학교 이력 → 남기지 않음(현재값만, 발행 스냅샷 없음).
+     · 돈 값의 단위·신뢰 → 원 정수 고정, 학생엔 총액 아닌 (과목→월정액) 예외만, 내보내기 수정은 저장 안 함.
+     기록처: payment-notice-export.md(INV-PN2/PN5/PN6·규칙) · student-registration.md(횡단 결정 이관 주석) -->
 
 ## 미이주 참고
 

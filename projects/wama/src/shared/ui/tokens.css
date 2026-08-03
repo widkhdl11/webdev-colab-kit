@@ -47,4 +47,10 @@
 
   /* 타이포 */
   --font-sans: "Pretendard Variable", Pretendard, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* 출력물(학부모 전달용 이미지) 전용 — checkpoint 승인 2026-08-03.
+     1080px 캔버스는 화면의 2배 밀도라 화면 값이 그대로는 안 보인다. 하드코딩 대신 화면 토큰에서 파생시켜
+     8px 라운드·1px 헤어라인 규약과의 관계를 유지한다. 화면 UI 에서는 쓰지 않는다. */
+  --radius-print: calc(var(--radius) * 2); /* 16px */
+  --hairline-print: 2px;                   /* 화면 1px 헤어라인의 2배 (짝수 유지) */
 }

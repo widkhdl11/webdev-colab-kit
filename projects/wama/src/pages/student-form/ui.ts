@@ -7,6 +7,7 @@ import {
 import type { StudentProfile } from "@/entities/student/model";
 import { renderHeader } from "@/widgets/header/ui";
 import { getSessionHeader } from "@/features/auth/api";
+import { renderStudentFeeOverrides } from "@/widgets/student-fee-overrides/ui";
 
 type Mode = "create" | "edit";
 
@@ -167,6 +168,9 @@ export async function mountStudentFormPage(root: HTMLElement, mode: Mode, id?: s
         ? el("div", { class: "empty-state" },
             el("p", { class: "page__desc" }, `학생(${id ?? ""})을 찾을 수 없습니다.`))
         : renderForm(mode, profile),
+      // 수강료 예외는 학생이 존재해야 붙는다 — 등록 화면에는 아직 학생 id 가 없다.
+      // 등록 직후 수정 화면으로 오면 그때 편집한다.
+      ...(mode === "edit" && profile ? [await renderStudentFeeOverrides(profile.id)] : []),
     ),
   );
 }

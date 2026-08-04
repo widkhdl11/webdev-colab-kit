@@ -7,16 +7,20 @@
 // 자족 슬라이스: schedule·student 를 import 하지 않고 **필요한 모양만** 아래에 선언한다(FSD 동일 레이어 금지).
 // 실제 ScheduleSlot·StudentProfile 은 이 모양을 만족하므로 상위(features)에서 그대로 넘기면 된다.
 
+import { isIntegerAmount } from "@/shared/lib/money";
+
 // 주 횟수를 세는 데 필요한 최소 모양 — 요일·시간은 금액과 무관하다.
 export interface TuitionSlot {
   readonly subject: string;
 }
 
 // 금액 단위는 원(KRW) 정수 고정. 통화는 하나뿐이라 값 객체로 감싸지 않고 규칙만 강제한다. — INV-PN2
+// 규칙 자체는 shared/lib/money 에 한 벌만 둔다 — 여기와 subject/price 가 따로 적으면 한쪽만 고쳐진다.
+// 상한의 출처는 스펙의 "입력과 검증" 표다(코드가 아니라 문서가 단일 진실).
 export const MAX_AMOUNT = 10_000_000;
 
 export function isValidAmount(v: number): boolean {
-  return Number.isInteger(v) && v >= 0 && v <= MAX_AMOUNT;
+  return isIntegerAmount(v, MAX_AMOUNT);
 }
 
 // 학원 단위 가격표: (과목, 주 횟수) → 월정액.

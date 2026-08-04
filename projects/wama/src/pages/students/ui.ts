@@ -87,6 +87,7 @@ export async function mountStudentsPage(root: HTMLElement): Promise<void> {
         el("div", { style: "display:flex; gap:8px" },
           el("a", { class: "btn-ghost btn-ghost--sm", href: "#/stats" }, "성적 통계"),
           el("a", { class: "btn-ghost btn-ghost--sm", href: "#/subjects" }, "과목 관리"),
+          el("a", { class: "btn-ghost btn-ghost--sm", href: "#/settings" }, "학원 설정"),
         ),
       ),
       renderStats(students),

@@ -1,19 +1,42 @@
 # PROGRESS.md
 
 ## 현재 상태 (wrap-up이 갱신 — 이 블록만 세션 시작 시 읽힘)
-- 오늘의 목표: 성적 통계 페이지 구현. **달성.**
-- 완료: stats 스펙 approved+봉인(INV-ST1~ST4). **pages/stats 실동작** — entities/stats 집계(백분율 환산·학생 동등 가중·
-  미응시 제외·정기시험 시간축) + 3탭(전체/과목별/학년별) SVG 꺾은선·막대·드릴다운, 학원 격리=RLS(ST1). 유닛 29(stats 19)
-  +통합 ST1, 게이트(40파일)·vite build green. 리뷰어 3종+test-auditor 반영(subjectTrend 0위장 제거·repo 결측 NaN·로드실패
-  Result·집계 단일경로+중복행 방어·드릴다운 이름 링크·곡선/그라데이션). 커밋 2개(docs/feat) struc-change 푸시. 횡단 미결
-  (과목 분열·점수 단위) stats 몫 소진.
-- 멈춘 지점: 기능 완결. ST1 통합테스트는 라이브 Supabase 필요(test:integration, 이번 세션 미실행 — 작성·타입검사만 확인).
-- 다음 할 일: 월간 평가표 이미지/PDF 내보내기 — 먼저 평가표 문서 시안(디자인 국면), 그다음 pages 배선.
-- 대기 중인 결정: 없음. (남은 필수기능 스펙 evaluation·exam-score·schedule·student-registration·evaluation-export는 draft —
-  기능은 대부분 배선됨, 스펙 미승인. 실배포 시 이메일확인 재활성 · schedule/evaluation student_id 학원검증 미적용)
+- 오늘의 목표: "월간 평가표 내보내기" 디자인 국면. **달성 + 기능 정체가 바뀜** — 실제 필요는 평가표가 아니라
+  **학부모 전달용 시간표·결제 안내 이미지**였다(PRODUCT 필수기능 교체, 사용자 동의).
+- 완료: 스펙 payment-notice-export.md **approved+봉인(INV-PN1~PN7)** · 시안 payment-notice.html 확정(checkpoint 4회) ·
+  design-rules "학부모 전달용 출력물" 블록 신설·개정 · entities/tuition 순수 도메인 + 유닛 26 green ·
+  횡단 미결 2건 소진(_cross-cutting 5→3) · 커밋 4개(kit 2 + wama 2, **푸시 안 함**).
+  수강료 모델: 가격=(과목×주 횟수)→월정액, 주 횟수는 시간표 파생(저장 금지), 학생별 과목 예외로 할인.
+- 멈춘 지점: 도메인만 만들고 멈춤. **마이그레이션 3종(과목 가격표 · 학생별 과목 예외 · 학원 계좌·기본문구) 미착수**,
+  UI·repo 없음. INV-PN1 통합테스트는 그 테이블이 없어 **현재 red**(tests/inv/, 기본 npm test 밖이라 게이트는 통과).
+- 다음 할 일: 학원 설정 화면(계좌·기본 문구) → 과목 가격표 → 학생별 예외 → 내보내기 화면 순으로 UI를 만든다.
+  시각 기준은 승인된 design-rules "학부모 전달용 출력물" + mockups/payment-notice.html (**시안 재작업 불필요**).
+- 대기 중인 결정: **wama 레포 푸시 여부(Vercel 자동배포 트리거)** · 이전 세션이 남긴 미커밋 파일 2개
+  (src/entities/{exam-score,student}/model.test.ts) 처리. 그 외 스펙 4종(evaluation·exam-score·schedule·
+  student-registration) 여전히 draft · 실배포 시 이메일확인 재활성 · schedule/evaluation student_id 학원검증 미적용.
 
 ---
 ## 로그 (append-only — 필요할 때만 검색)
+
+### 2026-08-03~04 (평가표 → 수강료 안내 이미지로 교체 · 디자인 국면 → 스펙 승인 → 도메인)
+- **기능 정체 변경**: design-interview 회차1 답변에서 "이미지는 학생 부모에게 보낼 시간표+결제금액"이 나옴.
+  서술 평가는 내보내지 않는다(3회 명시). PRODUCT 필수기능·페이지 구성·비범위 갱신, 스펙 evaluation-export.md
+  → payment-notice-export.md 개명. DECISIONS 2026-08-03 기록 + 옛 항목 2건에 `→ 번복됨` 표시(지우지 않음).
+- **디자인 국면(checkpoint 4회)**: ①A/B/C 3안 비교 → C(블록+시간) 채택 ②금액 틸 채움 폐기(헤어라인 띠+틸 글자,
+  72→62px)·입금 한 줄(은행│계좌│예금주, 계좌번호는 대비 우선 ink) ③시간표 2열 시도 → **철회**(열 머리를 잃는
+  대가가 큼 — 지킬 것은 4:5가 아니라 표의 읽는 법) ④시간 열 제거 + 과목/요일 50%씩 중앙 정렬.
+  캔버스가 "정확히 1080×1350"에서 **"폭 1080 고정·높이 가변(최소 1350)"** 으로 바뀜(6과목 1566 / 1과목 1350).
+  시간 항목은 세 번 뒤집힘(F6 미표기 → C안 포함 → 최종 제거) — 경위와 우려를 시안·design-rules 주석에 보존.
+- **스펙 인터뷰**: 수강료 계산이 핵심이었음. "총액 저장" 기각(과목 끊어도 금액이 안 따라감), "회당 단가×달력 회차"
+  기각(4주/5주·공휴일 차감이 줄줄이 딸림). 사용자 확인 = **(과목×주 횟수)→월정액**, 4주인 달과 5주인 달 동일.
+  가격표 없는 조합은 빈칸+생성 차단(0원 대체 금지), 할인은 학생별 과목 예외로. 일괄 내보내기는 선택 기능이되
+  **모델은 일괄 가능하게** 설계. 봉인 inv_hash 9d49b089.
+- **게이트가 두 번 붙잡음**: (1) 봉인 직후 spec-coverage MISSING_TEST 7건 → npm test도 함께 도므로 red로 종료 불가
+  → 순수 도메인 최소 슬라이스로 TDD 한 사이클을 닫음(red 확인 → 구현 → green 26). (2) entities/tuition이
+  schedule·student를 import해 fsd/CROSS_SLICE → **자족 슬라이스**로 전환(필요한 모양만 선언, 학년은 주입받음).
+- 횡단 미결 소진: 돈 값 단위·신뢰(원 정수, 학생엔 총액 아닌 과목별 예외, 내보내기 수정은 저장 안 함) /
+  전학 시 과거 학교(이력 없음, 항상 현재값). 결정은 student-registration에도 이관 기록.
+- 검증: 게이트(44파일) green · 유닛 84 green · tsc green. 커밋 kit 2 + wama 2. **푸시 보류**(Vercel 배포 트리거).
 
 ### 2026-08-01 (성적 통계 페이지 — 스펙 → 구현 → 리뷰)
 - /spec stats(인터뷰로 결정, 봉인 INV-ST1~ST4): 전체 탭 그래프=정기(중간·기말)만, 평균=학생별 평균의 평균(학생 동등 가중),

@@ -3,6 +3,7 @@ import {
   parsePaymentSettings,
   validatePaymentSettings,
   isPaymentSettingsComplete,
+  isAccountComplete,
   renderNoticeTemplate,
   type PaymentSettings,
 } from "./payment-settings";
@@ -108,6 +109,22 @@ describe("isPaymentSettingsComplete — 이미지 생성 가능 여부", () => {
 
   it("형식이 잘못된 계좌번호도 미완성으로 본다 (저장을 우회해 들어온 값 방어)", () => {
     expect(isPaymentSettingsComplete({ ...ok, accountNumber: "없음" })).toBe(false);
+  });
+});
+
+describe("isAccountComplete — 이미지 생성 가능 여부(계좌만)", () => {
+  it("계좌 3종이 있으면 문구가 비어도 true — 문구는 내보내기 화면에서 채울 수 있다", () => {
+    expect(isAccountComplete({ ...ok, noticeTemplate: "" })).toBe(true);
+  });
+
+  it("계좌가 하나라도 비면 false — 계좌는 그 화면에서 못 고치므로 저장값이 유일한 근거다", () => {
+    expect(isAccountComplete({ ...ok, bankName: "" })).toBe(false);
+    expect(isAccountComplete({ ...ok, accountNumber: "" })).toBe(false);
+    expect(isAccountComplete({ ...ok, accountHolder: " " })).toBe(false);
+  });
+
+  it("형식이 잘못된 계좌번호도 false (저장을 우회해 들어온 값 방어)", () => {
+    expect(isAccountComplete({ ...ok, accountNumber: "없음" })).toBe(false);
   });
 });
 

@@ -4,7 +4,7 @@ import { formatWon } from "@/shared/lib/money";
 import type { Subject } from "@/entities/subject/model";
 import { listSubjects } from "@/entities/subject/repo";
 import { listSubjectPrices } from "@/entities/subject/price-repo";
-import type { SubjectPrice } from "@/entities/subject/price";
+import { pricesForSubject, type SubjectPrice } from "@/entities/subject/price";
 import { diffOverrides, MAX_STUDENT_FEE, type StudentSubjectFee } from "@/entities/student/subject-fee";
 import { listStudentSubjectFees, saveStudentSubjectFees } from "@/entities/student/subject-fee-repo";
 
@@ -13,8 +13,9 @@ import { listStudentSubjectFees, saveStudentSubjectFees } from "@/entities/stude
 // 위젯인 이유: 학생 수정 폼이 이미 길고, 이 블록은 자기 데이터를 스스로 읽고 저장한다.
 
 // 참고용으로 그 과목의 기본가를 함께 보여준다 — 얼마를 깎는 건지 모르고 숫자만 넣으면 실수한다.
+// 고르고 정렬하는 규칙은 entities(pricesForSubject)가 정한다 — 여기선 문장으로 잇기만.
 function basePriceHint(prices: readonly SubjectPrice[], subjectId: string): string {
-  const forSubject = prices.filter((p) => p.subjectId === subjectId).sort((a, b) => a.sessionsPerWeek - b.sessionsPerWeek);
+  const forSubject = pricesForSubject(prices, subjectId);
   if (forSubject.length === 0) return "가격표에 등록된 기본가 없음";
   return `기본가 ${forSubject.map((p) => `주${p.sessionsPerWeek}회 ${formatWon(p.monthlyFee)}`).join(" · ")}`;
 }

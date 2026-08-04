@@ -10,8 +10,8 @@
 //   인자 없으면 DEFAULT 목록을 적용. 프로젝트 ref 는 SUPABASE_PROJECT_REF 환경변수 우선, 없으면 기본값.
 
 import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = join(here, "..", "projects", "wama", "supabase", "migrations");

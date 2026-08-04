@@ -50,7 +50,12 @@ export async function savePaymentSettings(settings: PaymentSettings): Promise<Re
     .maybeSingle();
 
   if (error) return err(translate(error.message));
-  if (!data) return err("소속된 학원이 없습니다.");
+  // RLS 가 UPDATE 를 막으면 **에러가 아니라 0행**이 돌아온다(0012 이전에 실제로 겪음).
+  // "학원 없음"과 "권한 없음"이 같은 모양이라 문구를 뭉뚱그리되, 원인 추적용 로그를 남긴다.
+  if (!data) {
+    console.error("[academy] 설정 저장이 0행 — RLS UPDATE 정책·컬럼 권한(0012) 확인 필요");
+    return err("학원 설정을 저장할 수 없습니다. 권한을 확인해주세요.");
+  }
   try {
     return ok(parsePaymentSettings(data));
   } catch (e) {

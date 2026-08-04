@@ -87,7 +87,7 @@ export async function mountEvaluationFormPage(
       el("a", { class: "back-link", href: student ? `#/students/${student.id}` : "#/students" }, "← 돌아가기"),
       el("div", {},
         el("h1", { class: "page__title" }, title),
-        el("p", { class: "page__desc" }, "학부모 전달용 평가표에 들어갈 서술 평가입니다."),
+        el("p", { class: "page__desc" }, "선생님들이 학원 안에서 공유하는 월간 서술 평가입니다. 학부모에게 나가는 이미지에는 포함되지 않습니다."),
       ),
       student
         ? renderForm(student, mode, existing)

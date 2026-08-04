@@ -5,6 +5,7 @@ import {
   parseSubjectPrice,
   validateSubjectPrice,
   sortPrices,
+  pricesForSubject,
   type SubjectPrice,
 } from "./price";
 
@@ -14,7 +15,8 @@ import {
 
 const row = (subject: string, sessionsPerWeek: number, monthlyFee: number): SubjectPrice => ({
   id: `${subject}-${sessionsPerWeek}`,
-  subjectId: "s1",
+  // 과목명에서 파생 — 과목이 다르면 id 도 달라야 subjectId 필터를 제대로 검증한다
+  subjectId: `id-${subject}`,
   subject,
   sessionsPerWeek,
   monthlyFee,
@@ -89,5 +91,31 @@ describe("sortPrices — 표시 순서", () => {
     const input = [row("수학", 3, 3), row("논술", 1, 1)];
     sortPrices(input);
     expect(input[0]?.subject).toBe("수학");
+  });
+});
+
+describe("pricesForSubject — 한 과목의 가격만 골라 주 횟수 순으로", () => {
+  const all = [row("수학", 3, 250000), row("논술", 1, 120000), row("수학", 1, 100000)];
+
+  it("해당 과목만, 주 횟수 오름차순", () => {
+    const got = pricesForSubject(all, "id-수학").map((p) => p.sessionsPerWeek);
+    expect(got).toEqual([1, 3]);
+  });
+
+  it("과목명이 같아도 id 가 다르면 걸러낸다 — 이름이 아니라 id 로 판단한다", () => {
+    const mixed = [{ ...row("수학", 1, 100000), subjectId: "다른과목" }, row("수학", 3, 250000)];
+    const got = pricesForSubject(mixed, "id-수학");
+    expect(got).toHaveLength(1);
+    expect(got[0]?.sessionsPerWeek).toBe(3);
+  });
+
+  it("없으면 빈 배열 (가격표에 아직 안 넣은 과목)", () => {
+    expect(pricesForSubject(all, "없는id")).toEqual([]);
+  });
+
+  it("원본을 건드리지 않는다", () => {
+    const input = [row("수학", 3, 250000), row("수학", 1, 100000)];
+    pricesForSubject(input, "id-수학");
+    expect(input[0]?.sessionsPerWeek).toBe(3);
   });
 });

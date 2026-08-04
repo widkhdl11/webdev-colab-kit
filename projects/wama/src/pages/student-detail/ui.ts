@@ -107,8 +107,9 @@ export async function mountStudentDetailPage(root: HTMLElement, id: string): Pro
   const heroActions = el("div", { class: "hero-actions" },
     el("a", { class: "btn-ghost", href: `#/students/${student.id}/edit` }, "정보 수정"),
     deleteButton(student.id, student.name),
-    el("button", { class: "btn-primary", type: "button" },
-      el("span", { "aria-hidden": "true" }, "⇩ "), "평가표 내보내기"),
+    // 내보내는 건 평가표가 아니라 시간표·수강료 안내다(PRODUCT 필수기능 교체 2026-08-03).
+    el("a", { class: "btn-primary", href: `#/students/${student.id}/notice` },
+      el("span", { "aria-hidden": "true" }, "⇩ "), "수강료 안내 이미지"),
   );
 
   const scoreStat = (label: string, value: string): HTMLElement =>

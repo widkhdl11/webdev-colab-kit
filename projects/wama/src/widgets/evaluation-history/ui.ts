@@ -1,8 +1,9 @@
 import { el } from "@/shared/lib/dom";
-import type { Evaluation } from "@/entities/evaluation/model";
+import { groupByMonth, type Evaluation } from "@/entities/evaluation/model";
 
 // 월간 서술 평가 이력. 과목별로 기록되므로 같은 달에 여러 개 → 년.월로 묶는다.
-// (한 달 = 학부모 전달용 평가표 한 장의 단위.) 표시만 — 정렬은 repo가 보장한 순서(최신월 우선).
+// 표시만 — 묶는 규칙은 entities(groupByMonth), 정렬은 repo 가 보장한 순서(최신월 우선).
+// 학원 내부 공유용이다 — 학부모에게 나가는 이미지에는 평가가 들어가지 않는다(INV-PN3).
 export function renderEvaluationHistory(
   evaluations: Evaluation[],
   editHrefFor?: (evalId: string) => string,
@@ -11,18 +12,8 @@ export function renderEvaluationHistory(
     return el("p", { class: "empty-note" }, "작성된 월간 평가가 없습니다.");
   }
 
-  // 월 그룹으로 묶되 등장 순서(최신월 우선)를 유지한다.
-  const groups: { month: string; items: Evaluation[] }[] = [];
-  const index = new Map<string, Evaluation[]>();
-  for (const e of evaluations) {
-    let bucket = index.get(e.month);
-    if (!bucket) {
-      bucket = [];
-      index.set(e.month, bucket);
-      groups.push({ month: e.month, items: bucket });
-    }
-    bucket.push(e);
-  }
+  // 묶는 규칙은 entities(groupByMonth)가 정한다 — 화면마다 따로 묶으면 같은 데이터가 다르게 보인다.
+  const groups = groupByMonth(evaluations);
 
   return el("div", { class: "eval-groups" },
     ...groups.map((g) =>

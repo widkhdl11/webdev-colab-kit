@@ -61,10 +61,18 @@ export function validatePaymentSettings(s: PaymentSettings): PaymentSettingsErro
   return errors;
 }
 
-// 이미지 생성 가능 여부. 검증과 같은 기준을 쓴다 — 저장을 우회해 들어온 값도 여기서 걸린다.
-// 계좌 없는 입금 안내는 무의미하고, 빈칸이 박힌 이미지가 학부모에게 가면 사고다(스펙 성공/실패).
+// 학원 설정 화면의 완성도 — 네 칸이 다 채워졌는지. 검증과 같은 기준을 쓴다.
 export function isPaymentSettingsComplete(s: PaymentSettings): boolean {
   return Object.keys(validatePaymentSettings(s)).length === 0;
+}
+
+// 이미지 생성 가능 여부 중 **저장값이 책임지는 부분**만 본다 = 입금 계좌 3종.
+// 안내 문구는 내보내기 화면에서 이번 건만 고칠 수 있으므로(스펙 흐름 3), 저장된 문구가 비었다는 이유로
+// 생성을 막으면 화면에서 문구를 채워도 버튼이 계속 잠긴다. 문구는 호출부가 **입력칸 값**으로 따로 검사한다.
+// 계좌는 여기서 못 고치므로 저장값이 유일한 근거다 — 빈칸이 박힌 이미지가 학부모에게 가면 사고다.
+export function isAccountComplete(s: PaymentSettings): boolean {
+  const errors = validatePaymentSettings(s);
+  return !errors.bankName && !errors.accountNumber && !errors.accountHolder;
 }
 
 export type NoticeVars = Readonly<Record<string, string>>;

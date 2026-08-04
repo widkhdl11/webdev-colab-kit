@@ -21,6 +21,10 @@ export async function mountSubjectsPage(root: HTMLElement): Promise<void> {
   const tbody = el("tbody", {});
   const empty = el("p", { class: "page__desc", hidden: "" }, "아직 등록된 과목이 없습니다. 아래에서 추가하세요.");
 
+  // 과목 목록은 두 곳(과목 표 · 가격 추가 폼의 select)이 함께 보는 상태다.
+  // 한쪽만 갱신하면 방금 만든 과목에 가격을 못 넣거나, 지운 과목의 가격이 화면에 남는다.
+  let subjectList: Subject[] = [];
+
   // 한 과목 행. 삭제는 서버에 반영 후 행을 제거. 실패 시 note 로 알리고 행 유지.
   function subjRow(s: Subject): HTMLElement {
     const del = el("button", { class: "btn-ghost btn-ghost--sm", type: "button" }, "삭제");
@@ -38,6 +42,14 @@ export async function mountSubjectsPage(root: HTMLElement): Promise<void> {
           ?? row.previousElementSibling?.querySelector<HTMLButtonElement>("button");
         row.remove();
         if (tbody.children.length === 0) empty.hidden = false;
+
+        // 과목이 사라지면 그 과목의 가격 행도 DB 에서 cascade 로 함께 사라진다(0010).
+        // 화면에 남겨두면 존재하지 않는 가격을 보고 있는 셈이라 같이 지운다.
+        subjectList = subjectList.filter((x) => x.id !== s.id);
+        fillSubjectOptions();
+        for (const pr of [...priceBody.querySelectorAll(`tr[data-subject-id="${s.id}"]`)]) pr.remove();
+        if (priceBody.children.length === 0) priceEmpty.hidden = false;
+
         (nextDel ?? fName).focus();
       });
     });
@@ -52,6 +64,7 @@ export async function mountSubjectsPage(root: HTMLElement): Promise<void> {
   const initial = await listSubjects();
   const hdr = await getSessionHeader();
   if (initial.ok) {
+    subjectList = [...initial.value];
     render(initial.value);
   } else {
     note.show("error", initial.error);
@@ -85,6 +98,8 @@ export async function mountSubjectsPage(root: HTMLElement): Promise<void> {
       if (!res.ok) { note.show("error", res.error); return; }
       tbody.append(subjRow(res.value));
       empty.hidden = true;
+      subjectList = [...subjectList, res.value];
+      fillSubjectOptions(); // 방금 만든 과목에 바로 가격을 넣을 수 있어야 한다
       fName.value = "";
       fName.focus();
     });
@@ -116,7 +131,7 @@ export async function mountSubjectsPage(root: HTMLElement): Promise<void> {
       });
     });
 
-    const row = el("tr", {},
+    const row = el("tr", { "data-subject-id": p.subjectId },
       el("th", { scope: "row" }, p.subject),
       el("td", { class: "tnum" }, `주 ${p.sessionsPerWeek}회`),
       el("td", {}, amount),
@@ -159,9 +174,13 @@ export async function mountSubjectsPage(root: HTMLElement): Promise<void> {
 
   // 과목 select 는 등록된 과목에서만 고르게 한다 — 자유 입력이면 오타가 곧 "가격 없는 과목"이 된다.
   const pSubject = el("select", { class: "select", id: "price-subject" }) as HTMLSelectElement;
-  function fillSubjectOptions(subjects: readonly Subject[]): void {
-    pSubject.replaceChildren(...subjects.map((s) => el("option", { value: s.id }, s.name)));
-    pSubject.disabled = subjects.length === 0;
+  // 과목이 추가·삭제되면 이 select 와 가격표가 함께 따라가야 한다.
+  // 최초 한 번만 채우면 방금 만든 과목에 가격을 못 넣고, 지운 과목의 가격이 화면에 남는다.
+  function fillSubjectOptions(): void {
+    const keep = pSubject.value; // 갱신 중 선택이 튀지 않게 유지 (남아 있을 때만)
+    pSubject.replaceChildren(...subjectList.map((s) => el("option", { value: s.id }, s.name)));
+    pSubject.disabled = subjectList.length === 0;
+    if (subjectList.some((s) => s.id === keep)) pSubject.value = keep;
   }
   const pSessions = numberInput("price-sessions", "1", 1, MAX_SESSIONS_PER_WEEK);
   const pFee = numberInput("price-fee", "", 0, MAX_SUBJECT_FEE);
@@ -187,7 +206,7 @@ export async function mountSubjectsPage(root: HTMLElement): Promise<void> {
     });
   });
 
-  if (initial.ok) fillSubjectOptions(initial.value);
+  fillSubjectOptions();
   const prices = await listSubjectPrices();
   if (prices.ok) renderPrices(prices.value);
   else priceNote.show("error", prices.error);

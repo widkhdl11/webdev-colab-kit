@@ -1,0 +1,111 @@
+/* 학부모 전달용 수강료 안내 카드 — PNG 로 캡처되는 출력물.
+   시각 기준: docs/design/design-rules.md "학부모 전달용 출력물"(checkpoint 승인 2026-08-03, 개정 08-04)
+   시안: docs/design/mockups/payment-notice.html
+   화면 UI 가 아니라 이미지라서 hover·focus 가 없다 — 위계는 크기·대비로만 만든다.
+   px 값은 전부 1080 기준 실측치(화면 540pt 카드의 2배 밀도). 미리보기 축소는 부모가 zoom 으로 건다. */
+
+.pnc {
+  /* 폭 고정 · 높이 가변(최소 1350) — 과목이 많으면 그만큼 길어진다 */
+  width: 1080px;
+  min-height: 1350px;
+  box-sizing: border-box;
+  padding: 64px 88px 56px;
+  background: var(--bg-surface);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 27px;
+  line-height: 1.75;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 남는 높이를 위아래로 나눠 흡수 — 과목이 적어도 바닥만 휑해지지 않는다 */
+.pnc__spacer { flex: 1 1 0; }
+
+.pnc__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+.pnc__brand { display: flex; align-items: center; gap: 16px; }
+.pnc__logo {
+  width: 56px; height: 56px;
+  border-radius: var(--radius-print);
+  background: var(--brand-strong);
+  color: var(--on-brand);
+  font-size: 28px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.pnc__academy { font-size: 28px; font-weight: 700; line-height: 1.3; }
+.pnc__branch { font-size: 22px; color: var(--muted); line-height: 1.3; }
+.pnc__month-label {
+  font-size: 20px; font-weight: 700; letter-spacing: 0.08em;
+  color: var(--muted); text-align: right;
+}
+.pnc__month { font-size: 48px; font-weight: 700; text-align: right; line-height: 1.2; }
+
+.pnc__block { border-radius: var(--radius-print); padding: 24px 32px; margin-top: 32px; }
+.pnc__block--soft { background: var(--brand-soft); border: var(--hairline-print) solid var(--brand-border); }
+.pnc__block--line { background: var(--bg-surface); border: var(--hairline-print) solid var(--line); }
+.pnc__block--wait { background: var(--status-wait-bg); padding: 20px 32px; }
+
+.pnc__label {
+  font-size: 20px; font-weight: 700; letter-spacing: 0.08em;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+
+/* 학생 이름은 오발송 방지 앵커다 — 크기를 줄이지 않는다(design-rules) */
+.pnc__student-name { font-size: 48px; font-weight: 700; line-height: 1.25; }
+.pnc__student-meta { font-size: 24px; color: var(--muted); }
+
+.pnc__greeting { margin-top: 32px; }
+
+.pnc__table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.pnc__table th, .pnc__table td { text-align: center; vertical-align: baseline; }
+.pnc__table thead th {
+  font-size: 20px; font-weight: 700; letter-spacing: 0.08em; color: var(--muted);
+  padding: 0 0 8px; border-bottom: var(--hairline-print) solid var(--line);
+}
+.pnc__table tbody th, .pnc__table tbody td {
+  font-size: 28px; padding: 12px 0;
+  border-bottom: var(--hairline-print) solid var(--line);
+}
+.pnc__table tbody th { font-weight: 700; }
+.pnc__table tbody tr:last-child th,
+.pnc__table tbody tr:last-child td { border-bottom: 0; padding-bottom: 0; }
+
+/* 금액: 채움 금지. 헤어라인 띠 + 틸 글자. 카드에서 틸로 칠해진 숫자는 이것뿐 */
+.pnc__amount {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 24px;
+  padding: 28px 0; margin-top: 32px;
+  border-top: var(--hairline-print) solid var(--brand-border);
+  border-bottom: var(--hairline-print) solid var(--brand-border);
+}
+.pnc__amount-label { font-size: 28px; color: var(--muted); }
+.pnc__amount-value {
+  font-size: 62px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1;
+  color: var(--brand-strong); font-variant-numeric: tabular-nums;
+}
+
+/* 입금 정보 한 줄: 은행 │ 계좌번호 │ 예금주. 계좌번호는 틸이 아니라 ink — 오독이 곧 돈 사고라
+   강조보다 대비가 우선이고, 틸은 금액에 예약돼 있다 */
+.pnc__pay { display: flex; align-items: baseline; gap: 20px; }
+.pnc__pay-bank { font-size: 26px; font-weight: 700; }
+.pnc__pay-sep { width: var(--hairline-print); align-self: stretch; background: var(--brand-border); }
+.pnc__pay-account {
+  font-size: 44px; font-weight: 700; letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.pnc__pay-holder-label { font-size: 20px; color: var(--muted); }
+.pnc__pay-holder { font-size: 24px; }
+
+.pnc__note { font-size: 24px; }
+.pnc__foot { font-size: 22px; color: var(--muted); margin-top: 24px; }
+
+/* 미리보기 전용 — 캡처 시에는 이 래퍼를 쓰지 않고 원본 크기로 그린다 */
+.pnc-preview { zoom: 0.42; }
+.pnc-preview-frame { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+
+/* 화면 밖에 두고 캡처하는 용도 — display:none 이면 렌더가 안 돼 캡처도 비므로 위치만 뺀다 */
+.pnc-offscreen { position: fixed; left: -20000px; top: 0; }

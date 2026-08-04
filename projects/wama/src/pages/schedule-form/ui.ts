@@ -2,7 +2,7 @@ import { el } from "@/shared/lib/dom";
 import { field, textInput, selectInput, formNote, withPending } from "@/shared/lib/form";
 import { getStudent } from "@/entities/student/repo";
 import { getSchedule, createSlot, deleteSlot } from "@/entities/schedule/repo";
-import type { ScheduleSlot, Weekday } from "@/entities/schedule/model";
+import { groupSlots, type ScheduleGroup, type ScheduleSlot, type Weekday } from "@/entities/schedule/model";
 import { listSubjects } from "@/entities/subject/repo";
 import { renderHeader } from "@/widgets/header/ui";
 import { getSessionHeader } from "@/features/auth/api";
@@ -12,30 +12,6 @@ const dayOrder = (d: Weekday): number => WEEKDAYS.indexOf(d);
 
 // 같은 과목·시간·담당을 한 줄로 묶어 요일 칩 여러 개로 보여준다(승인 시안의 표시 언어).
 // DB 는 요일당 1행이므로 한 묶음 = 여러 slot id. 삭제는 그 묶음의 slot 을 모두 지운다.
-interface SlotGroup {
-  readonly subject: string;
-  readonly start: string;
-  readonly end: string;
-  readonly teacher: string;
-  readonly days: { weekday: Weekday; id: string }[];
-}
-
-function groupKey(s: ScheduleSlot): string {
-  return `${s.subject}|${s.start}|${s.end}|${s.teacher}`;
-}
-
-function groupSlots(slots: readonly ScheduleSlot[]): SlotGroup[] {
-  const map = new Map<string, SlotGroup>();
-  for (const s of slots) {
-    const key = groupKey(s);
-    let g = map.get(key);
-    if (!g) { g = { subject: s.subject, start: s.start, end: s.end, teacher: s.teacher, days: [] }; map.set(key, g); }
-    g.days.push({ weekday: s.weekday, id: s.id });
-  }
-  for (const g of map.values()) g.days.sort((a, b) => dayOrder(a.weekday) - dayOrder(b.weekday));
-  return [...map.values()];
-}
-
 export async function mountScheduleFormPage(root: HTMLElement, id: string): Promise<void> {
   const student = await getStudent(id);
   const backHref = student ? `#/students/${student.id}` : "#/students";
@@ -62,7 +38,7 @@ export async function mountScheduleFormPage(root: HTMLElement, id: string): Prom
   const tbody = el("tbody", {});
 
   // 한 묶음(과목·시간·담당) 행. 삭제는 그 묶음의 모든 요일 slot 을 지운다.
-  function groupRow(g: SlotGroup): HTMLElement {
+  function groupRow(g: ScheduleGroup): HTMLElement {
     const del = el("button", { class: "btn-ghost btn-ghost--sm", type: "button" }, "삭제") as HTMLButtonElement;
     del.setAttribute("aria-label", `${g.subject} ${g.days.map((d) => d.weekday).join("·")} 슬롯 삭제`);
     del.addEventListener("click", () => {

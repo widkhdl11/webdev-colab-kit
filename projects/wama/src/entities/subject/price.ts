@@ -59,6 +59,14 @@ export function validateSubjectPrice(input: SubjectPriceInput): SubjectPriceErro
   return errors;
 }
 
+// 한 과목의 가격만 주 횟수 오름차순으로. "이 과목 기본가가 얼마인가"를 보여주는 자리들이 쓴다.
+// 고르고 정렬하는 규칙을 화면이 들고 있으면 화면마다 달라진다 — 시간표에서 실제로 어긋났다(2026-08-04).
+export function pricesForSubject(prices: readonly SubjectPrice[], subjectId: string): SubjectPrice[] {
+  return prices
+    .filter((p) => p.subjectId === subjectId)
+    .sort((a, b) => a.sessionsPerWeek - b.sessionsPerWeek);
+}
+
 // 표시 순서: 과목명 → 주 횟수. 원본은 건드리지 않는다.
 export function sortPrices(prices: readonly SubjectPrice[]): SubjectPrice[] {
   return [...prices].sort(

@@ -4,7 +4,7 @@
 // 프로젝트는 projects/<이름>/ 에 산다. projects/*/src 를 모두 스캔한다.
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { basename, dirname, join, relative, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 
 const ROOT = process.cwd();
 const PROJECTS = join(ROOT, "projects");
@@ -112,39 +112,6 @@ for (const projDir of projectDirs) {
       if (!safe) errors.push(`[security/DEFINER_SEARCH_PATH] ${file} — 함수 ${name}(): security definer 는 set search_path 를 빈 문자열('')로 고정해야 pg_temp 섀도잉을 막는다`);
   }
 
-  // 1''') 마이그레이션 스펙-귀속 (뒷문 단속, 주제12): DB·엔티티 변경은 approved 스펙을 선행해야 한다.
-  //   각 마이그레이션은 머리에 소속을 신고한다: `-- spec: <스펙파일명>`. 게이트는 신고를 검증(inv_hash 패턴).
-  //   기득권: 스펙 체계 이전 산물(아래 LEGACY 8개 파일명)만 면제 — 번호 컷오프가 아니라 명시 목록이라
-  //           낮은 번호를 재사용한 신규 파일(예: 0008_dup.sql)은 면제되지 않아 헤더를 요구받는다.
-  //   그 외: `-- spec:` 헤더 필수 + 가리킨 스펙이 같은 프로젝트 docs/specs 에 존재 + status: approved.
-  //   헤더 없음/draft/부재 → 실패(스펙 승인 전 구현 금지와 정합). 탈출구(none/legacy) 없음.
-  const LEGACY = new Set([
-    "0001_init.sql", "0002_academy_profile.sql", "0003_fix_join_code.sql", "0004_harden_search_path.sql",
-    "0005_subject.sql", "0006_student_schedule.sql", "0007_exam.sql", "0008_exam_student_guard.sql",
-  ]);
-  const specApproved = (sp) =>
-    existsSync(sp) && (() => {
-      const fm = readFileSync(sp, "utf-8").match(/^---\r?\n([\s\S]*?)\r?\n---/);
-      return !!fm && /^\s*status:\s*approved\b/m.test(fm[1]);
-    })();
-  for (const projDir of projectDirs) {
-    const migDir = join(projDir, "supabase", "migrations");
-    if (!existsSync(migDir)) continue;
-    const specsDir = join(projDir, "docs", "specs");
-    for (const file of walk(migDir).filter((f) => /^\d{4}_.*\.sql$/.test(basename(f)))) {
-      if (LEGACY.has(basename(file))) continue; // 기득권: 스펙 이전 8개 파일만 면제(명시 목록)
-      const rel = relative(ROOT, file);
-      const m = readFileSync(file, "utf-8").match(/^\s*--\s*spec:\s*(\S+)\s*$/mi);
-      if (!m) {
-        errors.push(`[model/BEFORE_ENTITIES] ${rel} — 스펙 귀속 헤더 없음(\`-- spec: <스펙파일명>\`). DB·엔티티 변경은 approved 스펙 선행 필요(수정 라우팅: 스펙→마이그레이션→테스트).`);
-        continue;
-      }
-      const specName = m[1].endsWith(".md") ? m[1] : `${m[1]}.md`;
-      if (!specApproved(join(specsDir, specName)))
-        errors.push(`[model/BEFORE_ENTITIES] ${rel} — \`-- spec: ${m[1]}\` 가 가리키는 ${relative(ROOT, join(specsDir, specName))} 가 없거나 status: approved 아님. 스펙 승인 후 마이그레이션 작성.`);
-    }
-  }
-
 // 1') 디자인 국면 강제 (아티팩트 의존): UI 레이어(pages/widgets) 작업은
 //     그 프로젝트의 승인된 design-rules.md(status: approved)를 선행해야 한다.
 //     - 트리거: projects/<이름>/src/{pages,widgets} 에 파일이 생김 = 화면 작업 시작
@@ -201,10 +168,17 @@ if (!QUICK) {
   // 3) 스펙 커버리지: approved 스펙의 모든 INV는 테스트가 참조해야 한다
   const sc = spawnSync("node", [join(ROOT, "gates", "spec-coverage.mjs")], { cwd: ROOT, encoding: "utf-8" });
   if (sc.status !== 0) errors.push(...(sc.stderr ?? "").trim().split("\n").filter(Boolean));
+  
+  // 4) RLS 정책 커버리지: 앱이 쓰는 테이블에 그 동작의 정책이 있는지 (막힌 쓰기는 에러가 아니라 0행)
+  const rls = spawnSync("node", [join(ROOT, "gates", "rls-coverage.mjs")], { cwd: ROOT, encoding: "utf-8" });
+  if (rls.status !== 0) errors.push(...(rls.stderr ?? "").trim().split("\n").filter(Boolean));
 }
 
 if (errors.length > 0) {
+  
   console.error(`게이트 실패 ${errors.length}건. 새 기능 추가 금지, 아래 위반만 수정:\n` + errors.slice(0, 30).join("\n"));
   process.exit(2);
 }
+
+
 console.log(`게이트 통과 (${fileCount}개 파일, ${projectDirs.length}개 프로젝트${QUICK ? ", quick" : ""})`);

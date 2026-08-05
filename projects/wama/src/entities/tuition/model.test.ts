@@ -7,6 +7,7 @@ import {
   withAdHocFees,
   toNoticeStudent,
   noticeBlockers,
+  parseFeeEdits,
   type SubjectPrice,
   type SubjectFeeOverride,
 } from "./model";
@@ -238,5 +239,41 @@ describe("noticeBlockers — 생성을 막아야 하는 조건 (INV-PN4)", () =>
 
   it("막을 이유가 여럿이면 전부 돌려준다 (하나씩 고치게 하지 않는다)", () => {
     expect(noticeBlockers({ studentName: "", targetMonth: "", total: null })).toHaveLength(3);
+  });
+});
+
+// 내보내기 화면이 타이핑 받은 금액 문자열을 도메인 값으로 바꾸는 지점.
+// 여기가 없던 동안 화면은 `if (raw !== "") edits.set(s, Number(raw))` 로 넘겼고,
+// withAdHocFees 가 무효값을 **조용히 버려** 입력칸에 보이는 값과 다른 금액으로 이미지가 나갔다.
+// 스펙 S2 는 "검증에서 막히고 이미지가 만들어지지 않는다" 이므로, 버리는 게 아니라 드러내야 한다.
+describe("parseFeeEdits — 타이핑한 금액을 막을 것과 받을 것으로 가른다 (INV-PN2)", () => {
+  it("빈칸은 수정이 아니다 — 무효도 아니고 편집도 아니다", () => {
+    const r = parseFeeEdits({ 수학: "", 논술: "   " });
+    expect(r.edits.size).toBe(0);
+    expect(r.invalid).toHaveLength(0);
+  });
+
+  it("정수 금액은 수정으로 받는다", () => {
+    const r = parseFeeEdits({ 수학: "220000", 논술: "0" });
+    expect(r.edits.get("수학")).toBe(220000);
+    expect(r.edits.get("논술")).toBe(0); // 0 은 면제라는 실제 의미가 있다
+    expect(r.invalid).toHaveLength(0);
+  });
+
+  it("음수·소수는 버리지 않고 무효로 드러낸다 (INV-PN2 / S2)", () => {
+    const r = parseFeeEdits({ 수학: "-10000", 논술: "180000.5" });
+    expect(r.invalid).toEqual(expect.arrayContaining(["수학", "논술"]));
+    expect(r.edits.size).toBe(0); // 무효값이 옛 금액을 덮어쓰지도, 통과하지도 않는다
+  });
+
+  it("상한을 넘거나 숫자가 아니면 무효다", () => {
+    const r = parseFeeEdits({ 수학: String(MAX_AMOUNT + 1), 논술: "이십만원" });
+    expect(r.invalid).toEqual(expect.arrayContaining(["수학", "논술"]));
+  });
+
+  it("무효가 하나라도 있으면 나머지가 멀쩡해도 그 과목만 무효로 남는다", () => {
+    const r = parseFeeEdits({ 수학: "220000", 논술: "-1" });
+    expect(r.edits.get("수학")).toBe(220000);
+    expect(r.invalid).toEqual(["논술"]);
   });
 });

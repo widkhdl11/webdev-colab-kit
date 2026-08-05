@@ -4,6 +4,45 @@ export type ExamKind = "중간" | "기말" | "학원" | "모의";
 export const EXAM_KINDS: readonly ExamKind[] = ["중간", "기말", "학원", "모의"];
 
 // 한 과목의 취득 점수 한 줄.
+// ── 시험 식별 문자열 ─────────────────────────────────────────────────────────
+// period·examName 의 형식은 이 슬라이스가 정한다. 전에는 화면(pages/score-form)이 조립하고
+// entities/stats 가 파싱했다 — 같은 진실이 두 벌이라, 화면 쪽 형식만 바꾸면 통계에서 시험이
+// 조용히 사라졌다(정기시험으로 인식 안 됨).
+//
+// stats 는 자족 슬라이스라 이걸 import 할 수 없다(FSD 동일 레이어 금지). 그래서 계약은
+// 양쪽 테스트에 같은 문자열 리터럴을 박아 고정한다 — 한쪽만 바꾸면 반대쪽 테스트가 깨진다.
+
+// 정기고사(중간·기말)는 연도+학기로, 비정기(학원·모의)는 이름+날짜로 식별한다.
+export function isIrregularKind(kind: string): boolean {
+  return kind === "학원" || kind === "모의";
+}
+
+/** "2026" + "1학기" → "2026 1학기" (stats.parsePeriod 가 읽는 형식) */
+export function formatRegularPeriod(year: string, semester: string): string {
+  return `${year} ${semester}`;
+}
+
+/** "1학기" + "중간" → "1학기 중간고사" */
+export function formatRegularExamName(semester: string, kind: string): string {
+  return `${semester} ${kind}고사`;
+}
+
+/** "2026 1학기" → 폼 값으로 되돌린다(수정 화면 프리필). 형식이 아니면 null. */
+export function parseRegularPeriod(period: string): { year: string; semester: string } | null {
+  const m = /^(\d{4})\s+([12]학기)$/.exec(period.trim());
+  return m ? { year: m[1] as string, semester: m[2] as string } : null;
+}
+
+/** date 입력값 "2026-08-05" → 저장 형식 "2026.08.05" */
+export function formatIrregularPeriod(isoDate: string): string {
+  return isoDate.replaceAll("-", ".");
+}
+
+/** 저장 형식 "2026.08.05" → date 입력값 "2026-08-05" */
+export function parseIrregularPeriod(period: string): string {
+  return period.replaceAll(".", "-");
+}
+
 export interface SubjectScore {
   readonly subject: string;
   readonly score: number; // 취득 점수

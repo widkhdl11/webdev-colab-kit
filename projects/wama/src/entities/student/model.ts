@@ -67,6 +67,20 @@ export function gradeFromBirthDate(birthDate: string, today: Date): string | nul
   return g == null ? null : gradeLabel(g);
 }
 
+// "학년 직접 지정"이 고른 학년을 그대로 유지하는 보정 오프셋. effectiveGrade 의 역함수다 —
+// gradeOffsetFor 로 얻은 오프셋을 effectiveGrade 에 넣으면 고른 학년이 다시 나와야 한다.
+//
+// 표준 학년은 **라벨이 아니라 번호**로 비교한다. 라벨을 거치면(gradeFromBirthDate → gradeNumberOf)
+// 사다리 밖(미취학·졸업)에서 null 이 되어 오프셋이 0 으로 뭉개진다. 그런데 화면이 "직접 지정하세요"라고
+// 안내하는 시점이 바로 그때라, 시킨 대로 골라도 저장 후 "미정"으로 돌아가는 버그가 됐다.
+// baseGradeNumber 는 범위 밖에서도 번호(0, -1 …)를 정직하게 돌려주므로 그 값을 쓴다.
+export function gradeOffsetFor(birthDate: string, selectedGrade: string, today: Date): number {
+  const base = baseGradeNumber(birthDate, today);
+  const selected = gradeNumberOf(selectedGrade);
+  if (base == null || selected == null) return 0; // 근거가 없으면 보정하지 않는다(표준 그대로)
+  return selected - base;
+}
+
 // 표시용 실효 학년 = 표준 학년 + 보정 오프셋. 오프셋은 상수 → 매년 자동으로 함께 진급.
 export function effectiveGrade(birthDate: string, gradeOffset: number, today: Date): string {
   const g = baseGradeNumber(birthDate, today);

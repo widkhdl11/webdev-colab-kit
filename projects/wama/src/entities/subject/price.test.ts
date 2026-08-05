@@ -4,6 +4,7 @@ import {
   MAX_SESSIONS_PER_WEEK,
   parseSubjectPrice,
   validateSubjectPrice,
+  parseSubjectFeeInput,
   sortPrices,
   pricesForSubject,
   type SubjectPrice,
@@ -117,5 +118,37 @@ describe("pricesForSubject — 한 과목의 가격만 골라 주 횟수 순으�
     const input = [row("수학", 3, 250000), row("수학", 1, 100000)];
     pricesForSubject(input, "id-수학");
     expect(input[0]?.sessionsPerWeek).toBe(3);
+  });
+});
+
+// 화면이 타이핑 받은 금액 문자열을 도메인 값으로 바꾸는 지점.
+// 이게 없던 동안 화면은 `Number(pFee)` 로 넘겼고, `Number("") === 0` 이라
+// **금액칸을 비운 채 "가격 추가"를 누르면 0원 수강료가 조용히 등록**됐다.
+// 그러면 그 조합은 "가격 없음"이 아니라 "0원 가격"이 되어, 내보내기의 빈칸 표시도
+// 생성 차단(INV-PN6)도 발동하지 않는다 — 0원 청구서가 경고 없이 학부모에게 나간다.
+describe("parseSubjectFeeInput — 빈칸과 0원을 가른다 (INV-PN2)", () => {
+  it("빈칸은 0이 아니라 오류다", () => {
+    const r = parseSubjectFeeInput("");
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error).toContain("입력");
+  });
+
+  it("공백만 있어도 빈칸으로 본다", () => {
+    expect(parseSubjectFeeInput("   ").ok).toBe(false);
+  });
+
+  it("직접 친 0 은 받는다 — 면제라는 실제 의미가 있다", () => {
+    const r = parseSubjectFeeInput("0");
+    expect(r).toEqual({ ok: true, value: 0 });
+  });
+
+  it("정수 금액을 받는다", () => {
+    expect(parseSubjectFeeInput(" 250000 ")).toEqual({ ok: true, value: 250000 });
+  });
+
+  it("음수·소수·문자·상한초과는 오류다 (INV-PN2)", () => {
+    for (const bad of ["-1", "180000.5", "이십만원", String(MAX_SUBJECT_FEE + 1)]) {
+      expect(parseSubjectFeeInput(bad).ok).toBe(false);
+    }
   });
 });

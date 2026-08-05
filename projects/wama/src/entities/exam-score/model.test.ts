@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { examAvgPct, summarizeScores, type Exam, type SubjectScore } from "./model";
+import {
+  examAvgPct, summarizeScores, isIrregularKind,
+  formatRegularPeriod, formatRegularExamName, parseRegularPeriod,
+  formatIrregularPeriod, parseIrregularPeriod,
+  type Exam, type SubjectScore,
+} from "./model";
 
 // 성적 카드의 파생값 단위 검증. 만점이 시험마다 다르므로 백분율 환산이 전제이고,
 // 레거시·미입력으로 max<=0 인 행이 섞여 들어와도 NaN/Infinity 로 새지 않아야 한다.
@@ -70,5 +75,44 @@ describe("summarizeScores — 시험 단위 요약", () => {
       avgPct: 0,
       bestPct: 0,
     });
+  });
+});
+
+// ── 시험 식별 문자열의 형식 ──────────────────────────────────────────────────
+// 이 슬라이스가 period·examName 을 **쓰는 쪽**이다. 읽는 쪽은 entities/stats 의 parsePeriod 이고,
+// stats 는 자족 슬라이스라(FSD 동일 레이어 import 금지) 이 함수들을 가져다 쓸 수 없다.
+// 그래서 형식을 코드로 공유하는 대신 **양쪽 테스트에 같은 문자열 리터럴을 박아** 고정한다.
+// 여기 "2026 1학기" 를 바꾸면 stats/model.test.ts 의 짝 테스트가 깨져야 한다 —
+// 조용히 갈라지면 통계에서 시험이 통째로 사라진다(정기시험으로 인식 안 됨).
+describe("정기/비정기 시험 식별 문자열 (읽는 쪽: entities/stats parsePeriod)", () => {
+  it("정기 period 는 'YYYY N학기'", () => {
+    expect(formatRegularPeriod("2026", "1학기")).toBe("2026 1학기");
+  });
+
+  it("정기 시험명은 'N학기 X고사'", () => {
+    expect(formatRegularExamName("1학기", "중간")).toBe("1학기 중간고사");
+    expect(formatRegularExamName("2학기", "기말")).toBe("2학기 기말고사");
+  });
+
+  it("정기 period 를 폼 값으로 되돌린다 (수정 화면 프리필)", () => {
+    expect(parseRegularPeriod("2026 1학기")).toEqual({ year: "2026", semester: "1학기" });
+  });
+
+  it("정기 형식이 아니면 되돌리지 않는다", () => {
+    expect(parseRegularPeriod("2026.08.05")).toBeNull();
+    expect(parseRegularPeriod("2026 3학기")).toBeNull();
+    expect(parseRegularPeriod("")).toBeNull();
+  });
+
+  it("비정기 period 는 날짜를 점으로 — 폼의 date 값과 오간다", () => {
+    expect(formatIrregularPeriod("2026-08-05")).toBe("2026.08.05");
+    expect(parseIrregularPeriod("2026.08.05")).toBe("2026-08-05");
+  });
+
+  it("학원·모의는 비정기, 중간·기말은 정기다", () => {
+    expect(isIrregularKind("학원")).toBe(true);
+    expect(isIrregularKind("모의")).toBe(true);
+    expect(isIrregularKind("중간")).toBe(false);
+    expect(isIrregularKind("기말")).toBe(false);
   });
 });

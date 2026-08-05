@@ -91,6 +91,35 @@ export function buildTuition(
   return summarize(lines);
 }
 
+export interface FeeEditParse {
+  /** 그대로 withAdHocFees 에 넘길 수 있는, 검증을 통과한 수정분. */
+  readonly edits: ReadonlyMap<string, number>;
+  /** 형식·범위가 틀린 과목명. 화면은 이걸 생성 차단 사유로 써야 한다. */
+  readonly invalid: readonly string[];
+}
+
+// 내보내기 화면에서 사람이 타이핑한 금액 문자열 → 도메인 값. — INV-PN2 / 스펙 S2
+//
+// 무효값을 **조용히 버리지 않는** 것이 이 함수의 존재 이유다. 화면이 `Number(raw)` 로 넘기고
+// withAdHocFees 가 무효값을 걸러내던 동안, 입력칸에는 -10000 이 보이는데 이미지에는 가격표 금액이
+// 찍혀 나갔다(둘 다 "틀리지 않은" 동작이라 아무도 못 잡았다). 스펙은 "검증에서 막히고 이미지가
+// 만들어지지 않는다"이므로, 버릴 게 아니라 호출부가 막을 수 있게 드러내야 한다.
+//
+// 빈칸은 무효가 아니라 "안 고침"이다. 0 은 면제라는 실제 의미가 있어 유효값으로 받는다.
+export function parseFeeEdits(raw: Readonly<Record<string, string>>): FeeEditParse {
+  const edits = new Map<string, number>();
+  const invalid: string[] = [];
+  for (const [subject, text] of Object.entries(raw)) {
+    const trimmed = text.trim();
+    if (trimmed === "") continue;
+    const n = Number(trimmed);
+    // Number("") === 0 함정은 위에서 걸렀다. 남는 건 진짜 숫자거나 NaN 이다.
+    if (!isValidAmount(n)) { invalid.push(subject); continue; }
+    edits.set(subject, n);
+  }
+  return { edits, invalid };
+}
+
 // 내보내기 화면의 이번 건 수정. 새 내역을 만들 뿐 입력(내역·가격표·예외)을 건드리지 않는다. — INV-PN5
 export function withAdHocFees(
   breakdown: TuitionBreakdown,

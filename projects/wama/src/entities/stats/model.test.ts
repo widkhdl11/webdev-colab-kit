@@ -195,3 +195,29 @@ describe("subjectsOf / siteSummary", () => {
     expect(sum.best).toEqual({ subject: "수학", avgPct: 75 }); // 수학 (90+60)/2=75 > 영어 70
   });
 });
+
+// ── 시험 식별 문자열의 형식 (쓰는 쪽: entities/exam-score) ───────────────────
+// stats 는 자족 슬라이스라 exam-score 를 import 할 수 없다(FSD 동일 레이어 금지).
+// 그래서 형식 계약을 코드가 아니라 **같은 문자열 리터럴**로 양쪽 테스트에 고정한다.
+// 아래 "2026 1학기" 는 exam-score/model.test.ts 의 formatRegularPeriod 테스트와 짝이다.
+// 한쪽 형식만 바꾸면 반대쪽 테스트가 깨진다 — 조용히 갈라지면 정기시험이 통계에서 사라진다.
+describe("period 형식 계약 — exam-score 가 쓰고 stats 가 읽는다", () => {
+  it("exam-score 의 formatRegularPeriod('2026','1학기') 산출물을 읽어낸다", () => {
+    expect(parsePeriod("2026 1학기")).toEqual({ year: 2026, semester: 1 });
+  });
+
+  it("exam-score 의 formatRegularExamName 산출물은 period 가 아니다 — 섞이지 않는다", () => {
+    expect(parsePeriod("1학기 중간고사")).toBeNull();
+  });
+
+  it("비정기 period(점 찍힌 날짜)는 정기 시점으로 읽지 않는다", () => {
+    expect(parsePeriod("2026.08.05")).toBeNull();
+  });
+
+  it("정기 종류 판정도 exam-score 와 같은 집합이어야 한다", () => {
+    expect(isRegular("중간")).toBe(true);
+    expect(isRegular("기말")).toBe(true);
+    expect(isRegular("학원")).toBe(false);
+    expect(isRegular("모의")).toBe(false);
+  });
+});

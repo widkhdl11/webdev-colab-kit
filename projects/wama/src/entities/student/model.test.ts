@@ -3,6 +3,7 @@ import {
   ageFromBirthDate,
   gradeFromBirthDate,
   effectiveGrade,
+  gradeOffsetFor,
   gradeNumberOf,
   summarizeEvaluations,
   GRADE_LADDER,
@@ -126,5 +127,52 @@ describe("summarizeEvaluations — 평가 완료 요약", () => {
 
   it("전원 완료면 100", () => {
     expect(summarizeEvaluations([stu("1", "done")]).pct).toBe(100);
+  });
+});
+
+// 학년 "직접 지정"의 오프셋 계산. 화면(student-form)이 들고 있던 규칙을 여기로 옮긴 것이다.
+//
+// 화면 버전은 표준 학년을 **라벨로 바꿨다가 되돌리는** 경로였다(gradeFromBirthDate → gradeNumberOf).
+// 사다리 밖(미취학·졸업)은 라벨이 없어 null 이 되고 오프셋이 0 으로 뭉개졌다.
+// 그런데 바로 그때 화면은 "표준 학년 범위를 벗어남 — 직접 지정하세요"라고 안내한다.
+// 즉 **화면이 시킨 행동이 100% 실패**했다: 학년을 골라 저장해도 다시 "미정"이 됐다.
+describe("gradeOffsetFor — 지정한 학년이 그대로 유지되는 오프셋", () => {
+  it("표준보다 한 학년 위를 고르면 +1", () => {
+    expect(gradeOffsetFor("2011-04-12", "고1", at(2026, 3, 1))).toBe(1); // 표준 중3
+  });
+
+  it("표준과 같은 학년을 고르면 0", () => {
+    expect(gradeOffsetFor("2011-04-12", "중3", at(2026, 3, 1))).toBe(0);
+  });
+
+  it("유급은 음수", () => {
+    expect(gradeOffsetFor("2011-04-12", "중2", at(2026, 3, 1))).toBe(-1);
+  });
+
+  it("표준 학년이 사다리 밖이어도 지정한 학년이 유지된다", () => {
+    // 2020년생은 2026 학년도 기준 표준 번호가 0 — 라벨이 없다(초1 미만).
+    expect(gradeFromBirthDate("2020-05-05", at(2026, 3, 1))).toBeNull();
+    const offset = gradeOffsetFor("2020-05-05", "초1", at(2026, 3, 1));
+    expect(effectiveGrade("2020-05-05", offset, at(2026, 3, 1))).toBe("초1");
+  });
+
+  it("졸업 쪽으로 벗어나도 마찬가지다", () => {
+    expect(gradeFromBirthDate("2007-05-05", at(2026, 3, 1))).toBeNull(); // 고3 다음
+    const offset = gradeOffsetFor("2007-05-05", "고3", at(2026, 3, 1));
+    expect(effectiveGrade("2007-05-05", offset, at(2026, 3, 1))).toBe("고3");
+  });
+
+  it("고른 학년은 이듬해에 한 학년 올라간다 — 오프셋은 상수라 함께 진급한다", () => {
+    const offset = gradeOffsetFor("2011-04-12", "고1", at(2026, 3, 1));
+    expect(effectiveGrade("2011-04-12", offset, at(2027, 3, 1))).toBe("고2");
+  });
+
+  it("생년월일이 없거나 잘못됐으면 보정하지 않는다(0)", () => {
+    expect(gradeOffsetFor("", "중1", at(2026, 3, 1))).toBe(0);
+    expect(gradeOffsetFor("모름", "중1", at(2026, 3, 1))).toBe(0);
+  });
+
+  it("사다리에 없는 학년 라벨이면 보정하지 않는다(0)", () => {
+    expect(gradeOffsetFor("2011-04-12", "대1", at(2026, 3, 1))).toBe(0);
   });
 });

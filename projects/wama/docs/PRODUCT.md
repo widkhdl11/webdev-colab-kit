@@ -52,7 +52,10 @@
 
 ## 기술 결정 (프리셋: TypeScript + FSD — 하네스 전제)
 
-- 프레임워크/렌더링: **Vite + SPA + FSD** — 확정
+- UI 프레임워크: **React 19** — 확정 (2026-08-05)
+- 빌드/렌더링: **Vite + SPA(CSR) + FSD** — 확정. SSR 없음
+- 라우팅: **react-router-dom (HashRouter)** — `#/students/:id` 형태 유지, 정적 호스팅 친화
+- 상태 관리: 라이브러리 없음 — React 내장 훅 + entities 레포 함수
 - 데이터 계층: **Supabase** — 학원 격리는 서버(RLS)가 강제
 - 인증: Supabase Auth (이메일/비밀번호) _(가정)_
 - 배포: 정적 호스팅 _(가정 — 미확정)_

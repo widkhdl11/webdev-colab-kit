@@ -89,6 +89,20 @@ export async function joinAcademy(code: string, teacherName: string): Promise<Re
   }
 }
 
+// 세션이 사라졌을 때(만료·토큰 갱신 실패·다른 탭에서 로그아웃) 알린다. 반환값은 구독 해제 함수.
+//
+// 왜 필요한가: 클라이언트 가드는 화면 진입 시 1회만 돈다. 그 뒤 세션이 죽어도 이미 그려진
+// 미성년 학생 정보가 화면에 남는다. 더 나쁜 건 읽기 repo 들이 실패를 빈 결과로 저하시킨다는 점이라
+// "로그아웃됨"이 **"학생 0명"** 으로 위장돼 보인다. 데이터 유출은 아니지만(서버 RLS 가 거부) 거짓 화면이다.
+export function onSignedOut(handler: () => void): () => void {
+  const { data } = supabase.auth.onAuthStateChange((event) => {
+    if (event !== "SIGNED_OUT") return;
+    invalidateAcademyCache(); // 다음 로그인이 옛 학원을 물려받지 않게
+    handler();
+  });
+  return () => data.subscription.unsubscribe();
+}
+
 export async function hasSession(): Promise<boolean> {
   const { data } = await supabase.auth.getSession();
   return data.session !== null;

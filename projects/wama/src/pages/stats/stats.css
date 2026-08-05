@@ -24,7 +24,14 @@
 .tab:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 
 /* ── 차트 카드 ── */
-.chart-card { padding: var(--space-5); margin-bottom: var(--space-6); }
+/* 카드면(배경·보더·모서리·그림자)은 base.css 의 .section-card 와 같은 토큰을 쓴다.
+   전에는 마크업이 `card chart-card` 였는데 `.card` 는 어디에도 정의된 적이 없어
+   차트 3개가 배경 위에 투명하게 떠 있었다. 정의 없는 클래스를 새로 만들지 않고 여기로 합친다. */
+.chart-card {
+  background: var(--bg-surface); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow-thin);
+  padding: var(--space-5); margin-bottom: var(--space-6);
+}
 .chart-head { margin-bottom: var(--space-4); }
 .chart-head--row { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-4); flex-wrap: wrap; }
 .chart-head h2 { margin: 0; font-size: 16px; font-weight: 600; color: var(--ink); }

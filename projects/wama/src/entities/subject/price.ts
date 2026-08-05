@@ -59,6 +59,26 @@ export function validateSubjectPrice(input: SubjectPriceInput): SubjectPriceErro
   return errors;
 }
 
+export type FeeInputResult =
+  | { readonly ok: true; readonly value: number }
+  | { readonly ok: false; readonly error: string };
+
+// 화면이 타이핑 받은 금액 문자열 → 도메인 값. — INV-PN2
+//
+// 빈칸을 0 으로 강등하지 않는 것이 핵심이다. `Number("") === 0` 이라 화면이 그대로 넘기면
+// 금액칸을 비운 채 저장했을 때 **0원 수강료가 조용히 등록**된다. 그러면 그 (과목, 주 횟수)는
+// "가격 없음"이 아니라 "0원 가격"이 되어 내보내기의 빈칸 표시도 생성 차단(INV-PN6)도 안 걸리고,
+// 0원 청구서가 경고 없이 나간다. 반대로 **직접 친 0 은 면제**라는 실제 의미가 있어 받아들인다.
+export function parseSubjectFeeInput(text: string): FeeInputResult {
+  const trimmed = text.trim();
+  if (trimmed === "") return { ok: false, error: "월정액을 입력하세요." };
+  const n = Number(trimmed);
+  if (!isIntegerAmount(n, MAX_SUBJECT_FEE)) {
+    return { ok: false, error: "금액은 0 이상 정수로 입력해주세요." };
+  }
+  return { ok: true, value: n };
+}
+
 // 한 과목의 가격만 주 횟수 오름차순으로. "이 과목 기본가가 얼마인가"를 보여주는 자리들이 쓴다.
 // 고르고 정렬하는 규칙을 화면이 들고 있으면 화면마다 달라진다 — 시간표에서 실제로 어긋났다(2026-08-04).
 export function pricesForSubject(prices: readonly SubjectPrice[], subjectId: string): SubjectPrice[] {

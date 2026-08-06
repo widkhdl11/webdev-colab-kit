@@ -39,6 +39,17 @@ if (pendingBlock && !/없음/.test(pendingBlock[1])) pending.push(pendingBlock[1
 const g = spawnSync("node", [join(ROOT, "gates", "run-gates.mjs"), "--quick"], { cwd: ROOT, encoding: "utf-8" });
 const gateLight = g.status === 0 ? "통과" : "실패 — 새 작업 전에 복구 필요";
 
+// 2.5. 하네스 무결성 — 검사 장치가 자기 자신이 바뀐 것은 못 본다.
+// 2026-08-05: gates/spec-coverage.mjs 가 커밋 없이 예전 버전으로 되돌아가 **봉인 검증이 통째로 빠진** 채
+// 세션 내내 "게이트 통과"로 보고됐다. 발견은 순전히 우연이었다(커밋하려다 git status 에서 봄).
+// 그래서 게이트·규칙·봉인 스크립트의 미커밋 변경을 세션 첫 줄에 띄운다. 정당한 작업 중이면 그냥 정보고,
+// 되돌아간 것이면 여기서 잡힌다. 실패가 아니라 경고인 이유: 하네스를 고치는 중에는 항상 더러운 게 정상이다.
+const HARNESS_PATHS = ["gates", ".claude/rules", ".claude/agents", "scripts/seal-spec.mjs"];
+const dirty = spawnSync("git", ["status", "--porcelain", "--", ...HARNESS_PATHS], { cwd: ROOT, encoding: "utf-8" });
+const dirtyFiles = dirty.status === 0
+  ? dirty.stdout.split("\n").map((l) => l.slice(3).trim()).filter(Boolean)
+  : [];
+
 // 3~4. 멈춘 지점 / 다음 할 일
 const stopped = progress.match(/멈춘 지점:\s*(.+)/)?.[1]?.trim() ?? "(기록 없음 — 첫 세션이거나 wrap-up 누락)";
 const next = progress.match(/다음 할 일:\s*(.+)/)?.[1]?.trim() ?? "(기록 없음)";
@@ -85,6 +96,10 @@ try {
 console.log(`── 세션 브리핑 (${active}) ──`);
 console.log(`▣ 대기 중인 결정: ${pending.length > 0 ? pending.join(" / ") : "없음"}`);
 console.log(`● 게이트: ${gateLight}`);
+if (dirtyFiles.length > 0) {
+  console.log(`⚠ 하네스 미커밋 변경 ${dirtyFiles.length}건: ${dirtyFiles.join(", ")}`);
+  console.log(`   → git diff 로 확인. 되돌아간 것이면 git checkout 으로 복구 (게이트가 조용히 약해졌을 수 있다).`);
+}
 console.log(`↩ 멈춘 지점: ${stopped}`);
 console.log(`→ 다음 할 일: ${next}`);
 if (principleWarn) console.log(principleWarn);

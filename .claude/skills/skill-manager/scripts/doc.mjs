@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // doc.mjs — 현재 프로젝트 .claude/skills/ 의 스킬들을 스캔해서
-//           이해하기 쉬운 설명 문서(SKILLS.md)를 만든다.
+//           이해하기 쉬운 설명 문서(OUT_NAME — 기본 SKILL-SUMMARY.md)를 만든다.
 //
 // 사용법:
 //   node doc.mjs
@@ -9,7 +9,7 @@
 //   1. 현재 폴더(process.cwd())의 .claude/skills/ 를 스캔
 //   2. 각 스킬의 SKILL.md frontmatter에서 name, description 추출
 //   3. 스킬 폴더의 mtime을 "추가된 날짜"로 기록
-//   4. SKILLS.md 를 프로젝트 루트에 생성/갱신
+//   4. OUT_NAME 문서를 프로젝트 루트에 생성/갱신
 //
 // frontmatter 파싱은 표준 형식을 가정한다:
 //   ---
@@ -27,6 +27,11 @@ import {
 } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+// 만들어낼 문서 이름. 여기 한 곳만 고치면 된다 —
+// 각 스킬에서 **읽어오는** 파일(SKILL.md)과 헷갈리지 말 것. 그쪽은 Claude Code 가 정한 고정 이름이라
+// 바꾸면 스킬이 통째로 인식되지 않는다.
+const OUT_NAME = "SKILL-SUMMARY.md";
 
 function isDir(p) {
   try { return statSync(p).isDirectory(); } catch { return false; }
@@ -98,6 +103,8 @@ function main() {
   const rows = [];
   for (const name of skillNames.sort()) {
     const dir = join(skillsDir, name);
+    // 읽어오는 쪽은 각 스킬의 SKILL.md 다 — Claude Code 가 정한 고정 파일명이라 바꿀 수 없다.
+    // (만들어내는 문서 이름은 아래 outPath 에서 정한다.)
     const mdPath = join(dir, "SKILL.md");
     let meta = {};
     if (existsSync(mdPath)) {
@@ -130,7 +137,7 @@ function main() {
     console.warn(`  (스킬 폴더 이름과 철자가 같은지 확인하세요. 지운 스킬이면 이 줄도 지우면 됩니다.)`);
   }
 
-  // SKILLS.md 작성
+  // 문서 작성
   const now = fmtDate(new Date());
   let out = `# 설치된 스킬 목록\n\n`;
   out += `> 생성일: ${now} · 총 ${rows.length}개 · 대상: \`.claude/skills/\`\n\n`;
@@ -161,7 +168,7 @@ function main() {
     out += `쉬운 설명을 바꾸려면 \`.claude/skills/skill-manager/easy-descriptions.json\` 을 고치세요.\n`;
   }
 
-  const outPath = join(process.cwd(), "SKILLS.md");
+  const outPath = join(process.cwd(), OUT_NAME);
   writeFileSync(outPath, out, "utf8");
   console.log(`문서 생성 완료: ${outPath}`);
   console.log(`스킬 ${rows.length}개 정리됨.`);

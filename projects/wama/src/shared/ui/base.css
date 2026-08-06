@@ -181,6 +181,28 @@ button { font: inherit; }
 /* 상세 표: 줄바꿈 대신 한 줄 유지 + 넘치면 가로 스크롤 (긴 시험명 줄바꿈 방지) */
 .section-card .table th, .section-card .table td { white-space: nowrap; }
 .table-scroll { overflow-x: auto; }
+/* 행이 계속 늘어나는 표(과목·가격표)는 카드 안에서 세로로 스크롤한다.
+   안 그러면 과목이 많아질수록 표가 화면을 밀어내 아래 폼이 멀어지고, 카드 경계가 잘려 보인다
+   (사용자 리뷰 2026-08-06). 머리행은 붙여둬야 스크롤 중에도 무슨 열인지 알 수 있다. */
+.table-scroll--capped { max-height: 420px; overflow-y: auto; }
+.table-scroll--capped thead th { position: sticky; top: 0; z-index: 1; }
+
+/* 한 칸에 버튼이 둘 이상일 때. JSX 는 줄바꿈 공백을 지워 버튼이 서로 붙는다 — 간격을 명시한다. */
+.cell-actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
+
+/* 표 카드 맨 위의 한 줄 입력 — 목록과 "그 목록에 넣는 일"을 같은 카드에 둔다.
+   따로 떨어진 폼 카드로 두면 제목·카드가 하나씩 더 생겨 화면이 실제 하는 일보다 복잡해 보인다
+   (사용자 리뷰 2026-08-06). 입력한 것이 바로 아래 목록에 붙는 게 눈에 보여야 한다. */
+.card-toolbar { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.card-toolbar .input, .card-toolbar .select { flex: 1; width: auto; min-width: 0; }
+.card-toolbar .form-note { margin: 0; }
+/* 주 횟수처럼 한두 글자만 들어가는 칸 — 나머지와 같은 폭을 차지하면 표와 눈이 안 맞는다. */
+.card-toolbar .u-narrow { flex: 0 0 96px; }
+.card-toolbar .u-narrow .input { width: 100%; }
+/* 입력줄 아래 한 줄 안내. 필드마다 힌트를 달면 줄이 늘어 카드가 다시 복잡해진다. */
+.card-hint { margin: 0; padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+/* 목록이 빈 카드 — 표 머리행만 덩그러니 남지 않게 안내를 카드 안에 둔다. */
+.table-card > .empty-note { margin: 0; padding: var(--space-6) var(--space-5); color: var(--muted); font-size: 14px; text-align: center; }
 .section-card__body .empty-note { padding: var(--space-6) var(--space-5); color: var(--muted); font-size: 14px; text-align: center; }
 
 /* 상세 — 점수 요약 (주요 수치는 ink로 위계 부여, 목록의 이름 강조와 대칭) */

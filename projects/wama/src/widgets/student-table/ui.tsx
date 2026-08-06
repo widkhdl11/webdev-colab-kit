@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import type { Student, EvalStatus } from "@/entities/student/model";
+import { subjectsLabel, type Student, type EvalStatus } from "@/entities/student/model";
 
 const STATUS: Record<EvalStatus, { label: string; cls: string }> = {
   done: { label: "평가완료", cls: "badge badge--done" },
@@ -30,7 +30,10 @@ export function StudentTable({ students }: { readonly students: Student[] }): Re
             <td><Link to={`/students/${s.id}`} className="student-name">{s.name}</Link></td>
             <td>{s.grade}</td>
             <td>{s.school}</td>
-            <td>{s.subjects.join(", ")}</td>
+            {/* 접힌 나머지는 title 로 남긴다 — 마우스를 올리면 전체가 보인다. */}
+            <td title={s.subjects.length > 0 ? s.subjects.join(", ") : undefined}>
+              {subjectsLabel(s.subjects)}
+            </td>
             <td className="num">{s.lastEvalMonth}</td>
             <td className="col-right">
               <span className={STATUS[s.evalStatus].cls}>{STATUS[s.evalStatus].label}</span>

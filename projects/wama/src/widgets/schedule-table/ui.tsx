@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { groupSlots, type ScheduleSlot } from "@/entities/schedule/model";
+import { groupSlots, timeRangeLabel, type ScheduleSlot } from "@/entities/schedule/model";
 
 // 학생 시간표 표. 표시만 — 묶는 규칙은 entities(groupSlots)가 정한다.
 // 같은 수업이 요일만 다르면 한 줄 + 요일 칩으로 보여준다. 슬롯당 한 줄로 두면
@@ -28,7 +28,7 @@ export function ScheduleTable({ slots }: { readonly slots: ScheduleSlot[] }): Re
                 {g.days.map((d) => <span key={d.weekday} className="day-chip">{d.weekday}</span>)}
               </div>
             </td>
-            <td className="num">{`${g.start}–${g.end}`}</td>
+            <td className="num">{timeRangeLabel(g.start, g.end)}</td>
             <td>{g.teacher}</td>
           </tr>
         ))}

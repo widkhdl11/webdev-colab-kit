@@ -88,6 +88,17 @@ export function effectiveGrade(birthDate: string, gradeOffset: number, today: Da
   return gradeLabel(g + gradeOffset) ?? "미정";
 }
 
+// 학생 목록의 "수강 과목" 칸 문구. 과목이 늘면 줄바꿈으로 행 높이가 들쭉날쭉해져 표가 읽기 어려워진다
+// (사용자 리뷰 2026-08-06). 앞의 몇 개만 보이고 나머지는 "외 N과목"으로 접는다.
+// 몇 개까지 보일지를 화면이 정하면 목록과 상세가 갈라지므로 규칙을 여기 한 벌만 둔다.
+export function subjectsLabel(subjects: readonly string[], max = 2): string {
+  if (subjects.length === 0) return "—";
+  // 한도가 0 이하로 들어와도 최소 하나는 보여준다 — 무엇을 듣는지 아예 안 보이면 칸이 쓸모없다.
+  const limit = Math.max(1, max);
+  if (subjects.length <= limit) return subjects.join(", ");
+  return `${subjects.slice(0, limit).join(", ")} 외 ${subjects.length - limit}과목`;
+}
+
 export interface EvalSummary {
   readonly total: number;
   readonly done: number;

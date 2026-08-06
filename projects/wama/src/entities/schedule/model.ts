@@ -1,13 +1,22 @@
 // 학생 시간표 표시용 읽기 모델. 과목·요일·시간대 — 학생마다 상이.
 export type Weekday = "월" | "화" | "수" | "목" | "금" | "토" | "일";
 
+// 시간은 **선택 입력**이다(DECISIONS 2026-08-06). null = 아직 안 정함.
+// 필수로 두면 선생님이 기본값(17:00–18:30)을 그대로 저장하게 되고, 틀린 시간이 맞는 것처럼 표에 박힌다.
+// 둘 중 하나만 채우는 상태는 DB CHECK(schedule_time_pair)가 막는다 — 반쪽 표시를 만들지 않기 위해.
 export interface ScheduleSlot {
   readonly id: string;
   readonly subject: string;
   readonly weekday: Weekday;
-  readonly start: string; // "17:00"
-  readonly end: string; // "18:30"
+  readonly start: string | null; // "17:00" | null
+  readonly end: string | null; // "18:30" | null
   readonly teacher: string;
+}
+
+// 시간 표시 문구. 두 화면(시간표 편집·학생 상세)이 같은 문구를 쓰도록 여기 한 벌만 둔다 —
+// 화면마다 빈 시간을 다르게 그리면 같은 데이터가 다르게 보인다.
+export function timeRangeLabel(start: string | null, end: string | null): string {
+  return start && end ? `${start}–${end}` : "—";
 }
 
 // 요일 정렬의 단일 기준. 문자열 정렬로는 월·화·수 순서가 나오지 않는다.
@@ -15,8 +24,8 @@ export const WEEKDAY_ORDER: readonly Weekday[] = ["월", "화", "수", "목", "�
 
 export interface ScheduleGroup {
   readonly subject: string;
-  readonly start: string;
-  readonly end: string;
+  readonly start: string | null;
+  readonly end: string | null;
   readonly teacher: string;
   readonly days: readonly { weekday: Weekday; id: string }[];
 }
@@ -26,7 +35,11 @@ export interface ScheduleGroup {
 // 상세 화면은 2줄로 나와 "중복인가?" 로 읽혔다(사용자 보고 2026-08-04). 그래서 여기 한 벌만 둔다.
 // 시간·담당이 다르면 실제로 다른 수업이므로 묶지 않는다.
 export function groupSlots(slots: readonly ScheduleSlot[]): ScheduleGroup[] {
-  const map = new Map<string, { subject: string; start: string; end: string; teacher: string; days: { weekday: Weekday; id: string }[] }>();
+  // 시간이 비면 키에 "" 가 들어가 빈 시간끼리 묶인다 — 의도한 동작이다(같은 과목·담당의 미정 수업은 한 줄).
+  const map = new Map<string, {
+    subject: string; start: string | null; end: string | null;
+    teacher: string; days: { weekday: Weekday; id: string }[];
+  }>();
   for (const s of slots) {
     const key = `${s.subject}|${s.start}|${s.end}|${s.teacher}`;
     const g = map.get(key) ?? { subject: s.subject, start: s.start, end: s.end, teacher: s.teacher, days: [] };

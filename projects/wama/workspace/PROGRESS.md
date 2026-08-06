@@ -2,23 +2,50 @@
 
 ## 현재 상태 (wrap-up이 갱신 — 이 블록만 세션 시작 시 읽힘)
 
-- 오늘의 목표: (계획에 없던 전환) **vanilla DOM → React 19 전환. 달성.** 사용자가 코드를 처음 열어보고
-  "내가 짜던 리액트 형식이 아닌 것 같다"고 지적해 시작 — UI 프레임워크가 동의 없이 정해져 있었다.
-- 완료: 화면 20개(pages 12 + widgets 8) React 19 + react-router-dom 7 재작성, entities·features 1,814줄 무손실 ·
-  리뷰 3종(code·security·ui) 지적 6건 전부 수정(0원 청구서 경로 2건 · 수정폼 새 레코드 생성 · 학년 지정 무시 ·
-  period 형식 두 벌 · 세션 소멸 미감지 · 정의 없는 CSS) · **PNG 저장 눈확인 완료 → 필수기능 4/8** ·
-  **꺼져 있던 봉인 검증 복구**(spec-coverage) · skill-manager 수정. 테스트 152→180, 커밋·푸시 두 레포 완료.
-- 멈춘 지점: 없음 — 시작한 작업은 모두 마무리·커밋·푸시됨.
-- 다음 할 일: `/spec student-registration` 으로 학생 등록/수정 스펙을 채운다(학년은 자동 진급하는 시변 파생 상태인데
-  규칙이 코드·DECISIONS 에만 있다 — 오늘 4번 버그로 드러난 빈칸). 그다음 schedule·evaluation·exam-score 순.
-- 대기 중인 결정: `/retro` 실행 여부(구조적 빈칸 2건: ① UI 프레임워크가 물어보는 자리 없이 정해짐 ② 게이트가
-  커밋 없이 약화됐는데 세션 내내 몰랐음) · pull.mjs 의 BUNDLES_DIR 한 줄(분류기 차단, 꾸러미 가져오기 불가) ·
-  킷 브랜치 upstream 연결(`git branch --set-upstream-to`, 안 걸면 안 밀린 커밋이 안 보임) ·
-  스펙 4종 여전히 빈 템플릿 · 실배포 시 이메일확인 재활성.
+- 오늘의 목표: React 19 전환(달성) → 리뷰 6건 수정(달성) → retro(달성) → **사용자 실사용 리뷰 6건 반영(달성)**.
+- 완료: 화면 20개 React 19 재작성 · 리뷰어 3종 지적 6건 수정 · PNG 저장 눈확인(필수기능 4/8) ·
+  꺼져 있던 봉인 검증 복구 · retro 3건 반영(kickoff 질문항목·브리핑 하네스경고·리뷰어 회귀판정 금지) ·
+  **사용자 실사용 리뷰**: 시간표 시간 선택입력(0013) · 표 세로스크롤 · 수강과목 "외 N과목" · 버튼 간격 ·
+  과목/가격표 입력을 카드 상단 한 줄로 간소화. 테스트 152→191. 커밋·푸시 완료.
+- 멈춘 지점: **눈으로 확인 안 한 것 2가지** — ① 시간표에서 시작·종료를 비운 채 저장(SQL 은 적용됨)
+  ② 간소화된 과목 관리 화면(입력줄이 좁아 보이는지). 코드·게이트·테스트는 통과.
+- 다음 할 일: 위 2가지를 `npm run dev` 로 눈확인하고, 그다음 `/spec student-registration` 으로 학생 등록/수정
+  스펙을 채운다(학년은 자동 진급하는 시변 파생인데 규칙이 코드·DECISIONS 에만 있다).
+- 대기 중인 결정: **make-interfaces-feel-better 스킬 적용 범위**(설치·리뷰 완료 — MEDIUM 1건만/6건 전부/제거 중 택1,
+  상세는 아래 로그) · 그에 딸린 ui-layers 한 줄("외부 UI 스킬 권고는 design-rules 와 충돌 시 design-rules 우선") ·
+  **model/BEFORE_ENTITIES 게이트 복구**(558bec9 이 지움 — 복구하면 0013 이 승인 스펙을 요구해 막힘) ·
+  pull.mjs 의 BUNDLES_DIR 한 줄(분류기 차단) · 킷 브랜치 upstream 연결 · 스펙 4종 빈 템플릿 · 실배포 시 이메일확인 재활성.
 
 ---
 
 ## 로그 (append-only — 필요할 때만 검색)
+
+### 2026-08-06 (사용자 실사용 리뷰 6건 · 스킬 도입 검토)
+- **사용자가 앱을 직접 써보고 낸 지적 6건**. 리뷰어가 못 잡는 종류였다 — 전부 "동작은 맞는데 쓰기 불편하다".
+  ① 시간표 시간을 자유롭게 → **선택 입력**으로(마이그레이션 0013). 기본값 17:00–18:30 을 비웠다.
+     미리 채워두면 그대로 저장돼 **틀린 시간이 맞는 것처럼 표에 박힌다**. 한쪽만 입력은 DB CHECK
+     (schedule_time_pair)와 화면 양쪽에서 막는다 — "17:00–" 반쪽 표시가 화면마다 분기를 낳기 때문.
+     수강료는 무영향(주 횟수로 계산, INV-PN7). entities 에 timeRangeLabel 신설(두 화면 문구 통일).
+  ② 과목 많아지면 가격표가 짤림 → `.table-scroll--capped`(max-height 420px + 머리행 sticky).
+  ③ 학생 목록 수강과목 줄바꿈 → entities 의 subjectsLabel 로 "수학, 논술 외 2과목", 전체는 title 로.
+  ④ 가격표 저장·삭제 버튼이 붙음 → `.cell-actions` (gap 8px).
+  ⑤⑥ **과목 추가·가격 추가 폼이 쓸데없이 복잡** → 목록 카드 맨 위 한 줄 입력(`.card-toolbar`)으로 이동.
+     제목·폼카드가 하나씩 사라졌다. 힌트 2줄은 1줄로 압축하되 **4주/5주 동일 규칙은 스펙 계약이라 유지**,
+     표 위 INV-PN6 경고도 유지(무리한 간소화는 안 한다는 사용자 지시).
+- **마이그레이션 0013 은 양쪽 레포에서 gitignore(`supabase/`) 대상 — 이 PC 에만 있다.** 사용자가 대시보드
+  SQL Editor 로 적용 완료. 재설치·다른 PC 에서는 아래 SQL 을 다시 실행해야 한다:
+  `alter table schedule alter column start_time drop not null;` / 같은 문장 end_time /
+  `alter table schedule add constraint schedule_time_pair check ((start_time is null) = (end_time is null));`
+- **model/BEFORE_ENTITIES 게이트가 사라진 것을 발견**. 5dae747 이 신설했는데 558bec9(RLS 게이트 신설)이
+  옛 run-gates.mjs 사본을 덮어쓰며 제거됐다. 오늘 아침 spec-coverage 봉인검증과 **같은 실수의 두 번째 사례**인데,
+  이건 커밋까지 돼서 오늘 추가한 브리핑 경고(워킹트리 대조)로는 못 잡는다 — 그 한계를 그대로 기록해 둔다.
+  지금 복구하면 0013 이 승인된 스펙을 요구해 막히므로(schedule 은 draft) 보류. `-- spec:` 헤더는 손으로 붙였다.
+- **make-interfaces-feel-better 스킬 설치**(npx skills add). `.agents/skills/` 실체 + `.claude/skills/` 심볼릭 링크,
+  문서 6개 1,157줄, **실행 코드 없음**. 과목 관리 화면에 full 리뷰를 걸어 실물 확인:
+  MEDIUM 1건(`.btn-ghost--sm` 계산 높이 34px < 40px 최소 클릭영역 — 실제 결함, 내가 놓쳤던 것),
+  LOW 5건(text-wrap balance/pretty, 금액 입력 tabular-nums, :active scale(0.96), .btn-primary 38.5px).
+  **기각한 것**: 동심 모서리(카드 8px→20px) — 승인된 design-rules 를 정면으로 건드린다. 이번엔 기각했지만
+  다음 세션이 무심코 적용하면 승인 절차를 우회하게 되므로, ui-layers 에 우선순위 한 줄이 필요하다(미결).
 
 ### 2026-08-05 (vanilla DOM → React 19 전환 · 리뷰 6건 · 꺼진 게이트 복구)
 - **발단**: 사용자가 `subjects/ui.ts` 를 처음 열어보고 "그동안 내가 짜던 리액트 형식이 아닌 것 같다"고 지적.

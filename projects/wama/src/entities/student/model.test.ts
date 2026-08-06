@@ -4,6 +4,7 @@ import {
   gradeFromBirthDate,
   effectiveGrade,
   gradeOffsetFor,
+  subjectsLabel,
   gradeNumberOf,
   summarizeEvaluations,
   GRADE_LADDER,
@@ -174,5 +175,30 @@ describe("gradeOffsetFor — 지정한 학년이 그대로 유지되는 오프�
 
   it("사다리에 없는 학년 라벨이면 보정하지 않는다(0)", () => {
     expect(gradeOffsetFor("2011-04-12", "대1", at(2026, 3, 1))).toBe(0);
+  });
+});
+
+// 학생 목록의 "수강 과목" 칸. 과목이 늘면 줄바꿈으로 행 높이가 들쭉날쭉해져 표가 읽기 어려워진다
+// (사용자 리뷰 2026-08-06). 몇 개까지 보일지는 화면이 아니라 여기서 정한다 — 화면마다 다르면
+// 같은 학생이 목록과 상세에서 다르게 보인다.
+describe("subjectsLabel — 수강 과목 줄임 표기", () => {
+  it("한도 안이면 그대로 쉼표로 잇는다", () => {
+    expect(subjectsLabel(["수학", "논술"], 2)).toBe("수학, 논술");
+  });
+
+  it("한도를 넘으면 나머지를 '외 N과목'으로 접는다", () => {
+    expect(subjectsLabel(["수학", "논술", "영어", "과학"], 2)).toBe("수학, 논술 외 2과목");
+  });
+
+  it("딱 하나 넘치면 '외 1과목'", () => {
+    expect(subjectsLabel(["수학", "논술", "영어"], 2)).toBe("수학, 논술 외 1과목");
+  });
+
+  it("없으면 대시 — 빈 칸으로 두지 않는다", () => {
+    expect(subjectsLabel([], 2)).toBe("—");
+  });
+
+  it("한도가 0 이하여도 최소 하나는 보여준다 — 무엇을 듣는지 아예 안 보이면 쓸모가 없다", () => {
+    expect(subjectsLabel(["수학", "논술"], 0)).toBe("수학 외 1과목");
   });
 });

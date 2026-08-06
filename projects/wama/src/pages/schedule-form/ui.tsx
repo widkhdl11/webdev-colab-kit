@@ -4,7 +4,9 @@ import { Field, FormNote, SelectInput, TextInput, busy, useFormNote, usePending 
 import { getStudent } from "@/entities/student/repo";
 import type { Student } from "@/entities/student/model";
 import { getSchedule, createSlot, deleteSlot } from "@/entities/schedule/repo";
-import { groupSlots, type ScheduleGroup, type ScheduleSlot, type Weekday } from "@/entities/schedule/model";
+import {
+  groupSlots, timeRangeLabel, type ScheduleGroup, type ScheduleSlot, type Weekday,
+} from "@/entities/schedule/model";
 import { listSubjects } from "@/entities/subject/repo";
 
 const WEEKDAYS: readonly Weekday[] = ["월", "화", "수", "목", "금", "토", "일"];
@@ -26,7 +28,7 @@ function GroupRow({
           {group.days.map((d) => <span key={d.id} className="day-chip">{d.weekday}</span>)}
         </div>
       </td>
-      <td className="num">{`${group.start}–${group.end}`}</td>
+      <td className="num">{timeRangeLabel(group.start, group.end)}</td>
       <td>{group.teacher || "미정"}</td>
       <td className="col-right">
         <button
@@ -55,8 +57,10 @@ export function ScheduleFormPage(): ReactNode {
 
   const [subject, setSubject] = useState("");
   const [days, setDays] = useState<readonly Weekday[]>([]);
-  const [start, setStart] = useState("17:00");
-  const [end, setEnd] = useState("18:30");
+  // 시간은 선택 입력이라 기본값을 비운다 — 17:00 을 미리 넣어두면 그대로 저장돼
+  // 틀린 시간이 맞는 것처럼 표에 박힌다(DECISIONS 2026-08-06).
+  const [start, setStart] = useState("");
+  const [end, setEnd] = useState("");
   const [teacher, setTeacher] = useState("");
 
   useEffect(() => {
@@ -99,7 +103,13 @@ export function ScheduleFormPage(): ReactNode {
   function submit(e: FormEvent): void {
     e.preventDefault();
     if (days.length === 0) { note.showError("요일을 하나 이상 선택하세요."); return; }
-    if (end <= start) { note.showError("종료 시간이 시작 시간보다 늦어야 합니다."); return; }
+    // 시간은 비워도 된다. 넣으려면 둘 다 — 반쪽은 표에서 "17:00–" 처럼 어중간하게 보인다.
+    if (Boolean(start) !== Boolean(end)) {
+      note.showError("시작·종료 시간은 둘 다 넣거나 둘 다 비워 주세요."); return;
+    }
+    if (start && end && end <= start) {
+      note.showError("종료 시간이 시작 시간보다 늦어야 합니다."); return;
+    }
     void run(async () => {
       note.clear();
       // 선택한 요일마다 slot 1개씩 저장. 성공한 요일은 즉시 선택 해제 → 부분 실패 후 재제출 중복 방지.
@@ -107,7 +117,7 @@ export function ScheduleFormPage(): ReactNode {
       const done: Weekday[] = [];
       const failures: string[] = [];
       for (const d of days) {
-        const res = await createSlot(id, { subject, weekday: d, start, end, teacher });
+        const res = await createSlot(id, { subject, weekday: d, start: start || null, end: end || null, teacher });
         if (res.ok) { created.push(res.value); done.push(d); }
         else failures.push(`${d}: ${res.error}`);
       }
@@ -196,10 +206,14 @@ export function ScheduleFormPage(): ReactNode {
         </div>
 
         <div className="form-row">
-          <Field label="시작" htmlFor="sl-start">
+          <Field
+            label="시작 (선택)"
+            htmlFor="sl-start"
+            hint={<span className="form-field__hint">시간이 유동적이면 비워두세요. 표에 —로 표시됩니다.</span>}
+          >
             <input id="sl-start" className="input input--block" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
           </Field>
-          <Field label="종료" htmlFor="sl-end">
+          <Field label="종료 (선택)" htmlFor="sl-end">
             <input id="sl-end" className="input input--block" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
           </Field>
         </div>

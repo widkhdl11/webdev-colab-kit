@@ -10,7 +10,7 @@ import {
 } from "@/entities/subject/price-repo";
 import { addSubject, deleteSubject, listSubjects } from "@/entities/subject/repo";
 import { formatWon } from "@/shared/lib/money";
-import { Field, FormNote, NumberInput, SelectInput, TextInput, busy, useFormNote, usePending } from "@/shared/ui/form";
+import { FormNote, NumberInput, SelectInput, TextInput, busy, useFormNote, usePending } from "@/shared/ui/form";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
@@ -82,7 +82,7 @@ function PriceRow({
           ariaLabel={`${price.subject} 주 ${price.sessionsPerWeek}회 월정액`}
         />
       </td>
-      <td className="col-right">
+      <td className="col-right cell-actions">
         <button
           className="btn-ghost btn-ghost--sm"
           type="button"
@@ -195,8 +195,15 @@ export function SubjectsPage(): ReactNode {
         <p className="page__desc">학원이 가르치는 과목을 관리합니다. 시간표·평가·성적에서 이 과목들을 사용합니다.</p>
       </div>
 
+      {/* 추가 입력은 목록 카드 맨 위에 둔다 — 넣은 것이 바로 아래에 붙는 게 보여야 한다.
+          아래에 따로 폼 카드를 두면 제목·카드가 하나씩 더 생겨 화면이 실제 하는 일보다 복잡해 보인다. */}
       <div className="table-card">
-        <div className="table-scroll">
+        <form className="card-toolbar" noValidate onSubmit={submitSubject}>
+          <label className="sr-only" htmlFor="subj-name">과목명</label>
+          <TextInput id="subj-name" value={newName} onChange={setNewName} placeholder="예: 초등 수학" />
+          <button className="btn-primary" type="submit" {...busy(addSubjectPending.pending)}>추가</button>
+        </form>
+        <div className="table-scroll table-scroll--capped">
           <table className="table">
             <caption className="sr-only">학원 과목 목록. 과목명, 삭제.</caption>
             <thead>
@@ -212,19 +219,11 @@ export function SubjectsPage(): ReactNode {
             </tbody>
           </table>
         </div>
+        {!hasSubjects && (
+          <p className="empty-note">아직 등록된 과목이 없습니다. 위에서 추가하세요.</p>
+        )}
       </div>
-      <p className="page__desc" hidden={hasSubjects}>아직 등록된 과목이 없습니다. 아래에서 추가하세요.</p>
-
-      <h2 className="section-card__title schedule-add__title">과목 추가</h2>
-      <form className="form-card" noValidate onSubmit={submitSubject}>
-        <Field label="과목명" htmlFor="subj-name">
-          <TextInput id="subj-name" value={newName} onChange={setNewName} placeholder="예: 초등 수학" />
-        </Field>
-        <FormNote note={note.note} />
-        <div className="form-actions">
-          <button className="btn-primary" type="submit" {...busy(addSubjectPending.pending)}>과목 추가</button>
-        </div>
-      </form>
+      <FormNote note={note.note} />
 
       {/* ── 수강료 가격표 ─────────────────────────────────────────────────────
           (과목 × 주 횟수) → 월정액. 학생 청구액이 여기서 나온다(스펙 payment-notice-export.md).
@@ -236,7 +235,29 @@ export function SubjectsPage(): ReactNode {
       </p>
 
       <div className="table-card">
-        <div className="table-scroll">
+        {/* 과목 select 는 등록된 과목에서만 고르게 한다 — 자유 입력이면 오타가 곧 "가격 없는 과목"이 된다.
+            라벨은 표 머리행(과목·주 횟수·월정액)과 같은 순서라 눈으로 대응된다 — 화면에선 감추고
+            스크린리더에만 남긴다. */}
+        <form className="card-toolbar" noValidate onSubmit={submitPrice}>
+          <label className="sr-only" htmlFor="price-subject">과목</label>
+          <SelectInput
+            id="price-subject"
+            value={pSubject}
+            onChange={setPSubject}
+            options={subjects.map((s) => [s.id, s.name] as const)}
+            disabled={!hasSubjects}
+          />
+          <label className="sr-only" htmlFor="price-sessions">주 횟수</label>
+          <span className="u-narrow">
+            <NumberInput id="price-sessions" value={pSessions} onChange={setPSessions} min={1} max={MAX_SESSIONS_PER_WEEK} />
+          </span>
+          <label className="sr-only" htmlFor="price-fee">월정액(원)</label>
+          <NumberInput id="price-fee" value={pFee} onChange={setPFee} min={0} max={MAX_SUBJECT_FEE} placeholder="월정액(원)" />
+          <button className="btn-primary" type="submit" {...busy(addPricePending.pending)}>추가</button>
+        </form>
+        {/* 두 힌트를 한 줄로 압축. 4주/5주 규칙은 스펙에서 온 실제 계약이라 지우지 않는다. */}
+        <p className="card-hint">주 횟수마다 금액을 따로 정합니다. 4주인 달과 5주인 달의 금액은 같습니다.</p>
+        <div className="table-scroll table-scroll--capped">
           <table className="table">
             <caption className="sr-only">과목별 주 횟수당 월 수강료. 과목, 주 횟수, 월정액, 저장·삭제.</caption>
             <thead>
@@ -261,33 +282,11 @@ export function SubjectsPage(): ReactNode {
             </tbody>
           </table>
         </div>
+        {sorted.length === 0 && (
+          <p className="empty-note">아직 등록된 가격이 없습니다. 위에서 과목·주 횟수별 월정액을 등록하세요.</p>
+        )}
       </div>
-      <p className="page__desc" hidden={sorted.length > 0}>
-        아직 등록된 가격이 없습니다. 과목마다 주 횟수별 월정액을 등록하세요.
-      </p>
-
-      <form className="form-card" noValidate onSubmit={submitPrice}>
-        {/* 과목 select 는 등록된 과목에서만 고르게 한다 — 자유 입력이면 오타가 곧 "가격 없는 과목"이 된다. */}
-        <Field label="과목" htmlFor="price-subject">
-          <SelectInput
-            id="price-subject"
-            value={pSubject}
-            onChange={setPSubject}
-            options={subjects.map((s) => [s.id, s.name] as const)}
-            disabled={!hasSubjects}
-          />
-        </Field>
-        <Field label="주 횟수" htmlFor="price-sessions" hint={<span className="form-field__hint">같은 과목이라도 주 몇 회 오느냐에 따라 금액이 다릅니다.</span>}>
-          <NumberInput id="price-sessions" value={pSessions} onChange={setPSessions} min={1} max={MAX_SESSIONS_PER_WEEK} />
-        </Field>
-        <Field label="월정액(원)" htmlFor="price-fee" hint={<span className="form-field__hint">원 단위 정수로 입력합니다. 4주인 달과 5주인 달의 금액은 같습니다.</span>}>
-          <NumberInput id="price-fee" value={pFee} onChange={setPFee} min={0} max={MAX_SUBJECT_FEE} />
-        </Field>
-        <FormNote note={priceNote.note} />
-        <div className="form-actions">
-          <button className="btn-primary" type="submit" {...busy(addPricePending.pending)}>가격 추가</button>
-        </div>
-      </form>
+      <FormNote note={priceNote.note} />
     </main>
   );
 }

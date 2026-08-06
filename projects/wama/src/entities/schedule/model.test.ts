@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { subjectWeekdays, groupSlots, type ScheduleSlot } from "./model";
+import {
+  subjectWeekdays, groupSlots, timeRangeLabel,
+  type ScheduleSlot, type Weekday,
+} from "./model";
 
 // 시간표 → "과목별 요일 목록" 파생. 수강료 안내 이미지의 시간표 블록이 이 모양을 쓴다
 // (design-rules "학부모 전달용 출력물": 과목=행 · 요일 나열 · 시간 미표기).
@@ -73,5 +76,46 @@ describe("groupSlots", () => {
 
   it("빈 시간표는 빈 배열", () => {
     expect(groupSlots([])).toEqual([]);
+  });
+});
+
+// 시간은 선택 입력이다(DECISIONS 2026-08-06). 학원 현장에서 시각은 그 주 사정으로 흔들리고,
+// 필수로 두면 기본값(17:00–18:30)이 그대로 저장돼 **틀린 시간이 맞는 것처럼** 표에 박힌다.
+describe("시간 미입력 슬롯", () => {
+  const noTime = (id: string, subject: string, weekday: Weekday): ScheduleSlot =>
+    ({ id, subject, weekday, start: null, end: null, teacher: "김지현" });
+
+  it("시간이 비어도 과목·담당이 같으면 한 묶음이다", () => {
+    const g = groupSlots([noTime("1", "수학", "월"), noTime("2", "수학", "수")]);
+    expect(g).toHaveLength(1);
+    expect(g[0]?.days.map((d) => d.weekday)).toEqual(["월", "수"]);
+  });
+
+  it("시간 있는 수업과 없는 수업은 다른 묶음이다", () => {
+    const g = groupSlots([
+      noTime("1", "수학", "월"),
+      { id: "2", subject: "수학", weekday: "수", start: "17:00", end: "18:30", teacher: "김지현" },
+    ]);
+    expect(g).toHaveLength(2);
+  });
+
+  it("수강 과목·요일 파생은 시간과 무관하다 — 수강료는 주 횟수로 계산된다(INV-PN7)", () => {
+    const sw = subjectWeekdays([noTime("1", "수학", "월"), noTime("2", "수학", "수")]);
+    expect(sw).toEqual([{ subject: "수학", weekdays: ["월", "수"] }]);
+  });
+});
+
+describe("timeRangeLabel — 두 화면이 같은 문구를 쓰게", () => {
+  it("둘 다 있으면 범위로 잇는다", () => {
+    expect(timeRangeLabel("17:00", "18:30")).toBe("17:00–18:30");
+  });
+
+  it("비어 있으면 대시 하나 — 화면마다 다르게 표시하지 않는다", () => {
+    expect(timeRangeLabel(null, null)).toBe("—");
+  });
+
+  it("한쪽만 있는 건 저장될 수 없지만(DB CHECK), 들어와도 반쪽으로 그리지 않는다", () => {
+    expect(timeRangeLabel("17:00", null)).toBe("—");
+    expect(timeRangeLabel(null, "18:30")).toBe("—");
   });
 });

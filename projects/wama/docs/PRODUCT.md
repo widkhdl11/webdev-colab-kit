@@ -19,7 +19,7 @@
 - [ ] 학생 등록 / 수정 → docs/specs/student-registration.md
 - [ ] 학생별 시간표 등록 → docs/specs/schedule.md
 - [ ] 학생·과목별 월간 서술 평가 → docs/specs/evaluation.md
-- [ ] 학부모 전달용 시간표·결제 안내 이미지 내보내기 → docs/specs/payment-notice-export.md (approved)
+- [x] 학부모 전달용 시간표·결제 안내 이미지 내보내기 → docs/specs/payment-notice-export.md (approved)
   - 딸림: 과목 가격표(주 횟수별 월정액) · 학생별 과목 금액 예외 · 학원 설정 화면(계좌·기본 문구)
 - [ ] 시험별 점수 입력 + 성적 이력 → docs/specs/exam-score.md
 - [x] 과목별·시험별 성적 통계 → docs/specs/stats.md (approved)

@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 // doc.mjs — 현재 프로젝트 .claude/skills/ 의 스킬들을 스캔해서
-//           이해하기 쉬운 설명 문서(OUT_NAME — 기본 SKILL-SUMMARY.md)를 만든다.
+//           사람이 읽는 스킬 목록 문서(OUT_NAME)를 만든다.
 //
 // 사용법:
 //   node doc.mjs
 //
 // 동작:
 //   1. 현재 폴더(process.cwd())의 .claude/skills/ 를 스캔
-//   2. 각 스킬의 SKILL.md frontmatter에서 name, description 추출
-//   3. 스킬 폴더의 mtime을 "추가된 날짜"로 기록
-//   4. OUT_NAME 문서를 프로젝트 루트에 생성/갱신
+//   2. 각 스킬의 SKILL.md frontmatter 에서 name, description, disable-model-invocation 추출
+//   3. 사람이 읽을 문구는 easy-descriptions.json 에서 가져온다(있으면 원문보다 우선)
+//   4. 스킬 폴더의 mtime 을 "추가된 날짜"로 기록
+//   5. OUT_NAME 문서를 프로젝트 루트에 생성/갱신
 //
 // frontmatter 파싱은 표준 형식을 가정한다:
 //   ---
@@ -28,16 +29,18 @@ import {
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-// 만들어낼 문서 이름. 여기 한 곳만 고치면 된다 —
-// 각 스킬에서 **읽어오는** 파일(SKILL.md)과 헷갈리지 말 것. 그쪽은 Claude Code 가 정한 고정 이름이라
-// 바꾸면 스킬이 통째로 인식되지 않는다.
-const OUT_NAME = "SKILL-SUMMARY.md";
+// 만들어낼 문서 이름. 바꿀 일이 있으면 여기 한 줄만 고친다.
+//
+// **읽어오는 SKILL.md 와 헷갈리지 말 것.** SKILL.md 는 Claude Code 가 정한 고정 파일명이라
+// 이름을 바꾸면 스킬이 통째로 인식되지 않는다. 실제로 2026-08-05 에 입력 쪽 경로를 바꿨다가
+// 12개 스킬의 frontmatter 가 전부 파싱 실패해, 슬래시 전용 스킬이 "자동"으로 잘못 표시됐다.
+const OUT_NAME = "SKILLS-SUMMARY.md";
 
 function isDir(p) {
   try { return statSync(p).isDirectory(); } catch { return false; }
 }
 
-// 사람이 읽을 "쉬운 설명"은 스킬 파일이 아니라 이 파일에서 온다.
+// 사람이 읽을 설명은 스킬 파일이 아니라 이 파일에서 온다.
 // SKILL.md 의 description 은 모델이 "지금 이 스킬을 꺼낼까"를 판단하는 문장이라 쉽게 풀어쓰면
 // 스킬이 제때 안 불린다. 그래서 두 설명을 분리해 둔다.
 const EASY_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "easy-descriptions.json");
@@ -103,8 +106,7 @@ function main() {
   const rows = [];
   for (const name of skillNames.sort()) {
     const dir = join(skillsDir, name);
-    // 읽어오는 쪽은 각 스킬의 SKILL.md 다 — Claude Code 가 정한 고정 파일명이라 바꿀 수 없다.
-    // (만들어내는 문서 이름은 아래 outPath 에서 정한다.)
+    // 읽어오는 쪽은 각 스킬의 SKILL.md — 위 OUT_NAME 주석 참조(이 경로는 바꾸면 안 된다).
     const mdPath = join(dir, "SKILL.md");
     let meta = {};
     if (existsSync(mdPath)) {
@@ -116,14 +118,23 @@ function main() {
     // 키는 폴더 이름이 기본이지만, 표에 보이는 건 frontmatter 의 name 이다.
     // 둘이 다른 스킬에서 사람이 보이는 이름으로 키를 적기 쉬우므로 양쪽 다 받는다.
     const displayName = meta.name || name;
-    const easyText = easy[name] ?? easy[displayName];
-    if (easyText !== undefined) used.add(easy[name] !== undefined ? name : displayName);
+
+    // easy-descriptions.json 항목은 두 형태를 받는다:
+    //   "짧은 설명"                       → 표에만 쓰고, 자세한 설명은 SKILL.md 원문으로 대체
+    //   { "short": "...", "full": "..." } → short 는 표, full 은 '자세한 설명' 섹션
+    const entry = easy[name] ?? easy[displayName];
+    if (entry !== undefined) used.add(easy[name] !== undefined ? name : displayName);
+    const easyShort = typeof entry === "string" ? entry : entry?.short;
+    const easyFull = (entry && typeof entry === "object") ? entry.full : undefined;
 
     rows.push({
       folder: name,
       name: displayName,
-      description: meta.description || "(설명 없음)",
-      easy: easyText || "(아직 없음)",
+      short: easyShort || "(아직 없음)",
+      // 자세한 설명: 한국어(full)가 있으면 그걸, 없으면 SKILL.md 원문으로 되돌아간다.
+      detail: easyFull || meta.description || "(설명 없음)",
+      // full 이 없어 원문으로 대체된 경우 문서에 표시해 준다 — 왜 영어가 섞였는지 알 수 있게.
+      isRaw: !easyFull,
       callWay: manualOnly ? `\`/${displayName}\` 로 직접` : "자동",
       added,
     });
@@ -151,21 +162,22 @@ function main() {
     out += `| 스킬 | 무슨 일을 하나 | 부르는 법 | 추가일 |\n`;
     out += `|------|----------------|-----------|--------|\n`;
     for (const r of rows) {
-      out += `| \`${r.name}\` | ${esc(r.easy)} | ${r.callWay} | ${r.added} |\n`;
+      out += `| \`${r.name}\` | ${esc(r.short)} | ${r.callWay} | ${r.added} |\n`;
     }
 
-    // 원문은 버리지 않는다 — 모델이 실제로 보고 판단하는 문장이라 확인할 자리가 필요하다.
-    out += `\n## 스킬 파일에 적힌 원래 설명\n\n`;
-    out += `모델이 "지금 이 스킬을 꺼낼까"를 판단할 때 읽는 문장입니다. `;
-    out += `위의 쉬운 설명과 달리 사람이 읽으라고 쓴 글이 아닙니다.\n\n`;
+    out += `\n## 자세한 설명\n\n`;
+    out += `각 스킬이 하는 일을 조금 더 풀어 쓴 설명입니다. `;
+    out += `한국어 설명이 아직 없는 스킬은 *(원문)* 으로 표시하고, `;
+    out += `모델이 스킬을 꺼낼지 판단할 때 읽는 SKILL.md 의 description 을 그대로 보여줍니다.\n\n`;
     for (const r of rows) {
-      out += `### \`${r.name}\`\n\n${r.description}\n\n`;
+      out += `### \`${r.name}\`${r.isRaw ? " *(원문)*" : ""}\n\n${r.detail}\n\n`;
     }
 
     out += `---\n\n`;
     out += `이 문서는 \`node .claude/skills/skill-manager/scripts/doc.mjs\` 가 만듭니다. `;
     out += `직접 고쳐도 다음 실행 때 덮어써집니다.\n`;
-    out += `쉬운 설명을 바꾸려면 \`.claude/skills/skill-manager/easy-descriptions.json\` 을 고치세요.\n`;
+    out += `설명을 바꾸려면 \`.claude/skills/skill-manager/easy-descriptions.json\` 을 고치세요 `;
+    out += `(표에 들어갈 한 줄은 "short", 아래 자세한 설명은 "full").\n`;
   }
 
   const outPath = join(process.cwd(), OUT_NAME);

@@ -1,6 +1,6 @@
 ---
 name: skill-manager
-description: Use when the user wants to see which skill bundles are available to pull from their my-skills repo, pull a bundle into the current project's .claude/skills/ folder, or generate a human-readable inventory document (SKILL-SUMMARY.md) describing the skills currently installed in the project. Trigger on requests like "가져올 수 있는 꾸러미 보여줘", "collab-kit 꾸러미 가져와", "스킬 설명 문서 만들어줘", "이 프로젝트에 무슨 스킬 있어".
+description: Use when the user wants to see which skill bundles are available to pull from their my-skills repo, pull a bundle into the current project's .claude/skills/ folder, or generate a human-readable inventory document (SKILLS-SUMMARY.md) describing the skills currently installed in the project. Trigger on requests like "가져올 수 있는 꾸러미 보여줘", "collab-kit 꾸러미 가져와", "스킬 설명 문서 만들어줘", "이 프로젝트에 무슨 스킬 있어".
 ---
 
 # skill-manager
@@ -47,7 +47,7 @@ node scripts/pull.mjs <꾸러미이름>
 node scripts/doc.mjs
 ```
 
-현재 `.claude/skills/`의 스킬들을 스캔해서 프로젝트 루트에 `SKILL-SUMMARY.md`를
+현재 `.claude/skills/`의 스킬들을 스캔해서 프로젝트 루트에 `SKILLS-SUMMARY.md`를
 생성/갱신한다. 각 스킬의 이름, 설명, 추가일이 표로 정리된다.
 
 문서가 생성되면, 사용자가 이해하기 쉽도록 각 스킬을 한 줄로 요약해서
